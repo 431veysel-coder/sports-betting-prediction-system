@@ -1,0 +1,151 @@
+#!/bin/sh
+
+#
+# Copyright 2015 the original author or authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+if [ -z "$APP_HOME" ]; then
+    APP_HOME=$( cd "${D:-./}" && pwd )
+fi
+
+APP_NAME="Gradle"
+APP_BASE_NAME=`basename "$0"`
+
+# Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
+DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
+
+# Use the maximum available, or set MAX_FD to a higher value
+MAX_FD="maximum"
+
+warn () {
+    echo "$*"
+}
+
+die () {
+    echo
+    echo "$*"
+    echo
+    exit 1
+}
+
+# OS specific support (must be 'true' or 'false').
+cygwin=false
+msys=false
+darwin=false
+nonstop=false
+case "`uname`" in
+  CYGWIN* )
+    cygwin=true
+    ;;
+  Darwin* )
+    darwin=true
+    ;;
+  MINGW* | MSYS* )
+    msys=true
+    ;;
+  NONSTOP* )
+    nonstop=true
+    ;;
+esac
+
+# Determine the Java command to use to start the JVM.
+if [ -n "$JAVA_HOME" ] ; then
+    if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
+        # IBM's JDK on AIX uses fixed locations for the java executable
+        JAVACMD="$JAVA_HOME/jre/sh/java"
+    else
+        JAVACMD="$JAVA_HOME/bin/java"
+    fi
+    if [ ! -x "$JAVACMD" ] ; then
+        die "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
+
+Please set the JAVA_HOME variable in your environment to match the
+location of your Java installation."
+    fi
+else
+    JAVACMD="java"
+    which java >/dev/null 2>&1 || die "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
+
+Please set the JAVA_HOME variable in your environment to match the
+location of your Java installation."
+fi
+
+# Increase the maximum file descriptors if we can
+if [ "$cygwin" = "false" -a "$darwin" = "false" -a "$nonstop" = "false" ] ; then
+    MAX_FD_LIMIT=`ulimit -H -n 2>/dev/null`
+    if [ $? -eq 0 ] ; then
+        if [ "$MAX_FD" = "maximum" -o "$MAX_FD" -gt "$MAX_FD_LIMIT" ] ; then
+            MAX_FD="$MAX_FD_LIMIT"
+        fi
+        ulimit -n "$MAX_FD" 2>/dev/null || true
+    fi
+fi
+
+# For Darwin, support Apples To Apple Script for JVM options
+if [ "$darwin" = "true" ]; then
+    eval "set -- $DEFAULT_JVM_OPTS \"$@\""
+else
+    # For Cygwin/MSYS, switch paths to Windows format before passing to java
+    if [ "$cygwin" = "true" -o "$msys" = "true" ] ; then
+        APP_HOME=`cygpath --path --mixed "$APP_HOME"`
+        JAVACMD=`cygpath --mixed "$JAVACMD"`
+        # We can't use the native path for the wrapper jar, because it may not be in the cygwin format
+        # but rather in the windows format.
+    fi
+fi
+
+# Escape an argument to be safely passed to a command line.
+save_arguments () {
+    number_of_args=0
+    for arg in explicit
+    do
+        eval "argn_$number_of_args=\$1"
+        number_of_args=`expr $number_of_args + 1`
+        shift
+    done
+    for arg in "$@"
+    do
+        eval "argn_$number_of_args=\$1"
+        number_of_args=`expr $number_of_args + 1`
+        shift
+    done
+}
+
+# Collect all arguments for the java command, stacking in reverse order to preserve spaces
+eval "set -- $DEFAULT_JVM_OPTS \"\$@\""
+
+# Determine the pathname of the application
+WHICH="$0"
+[ -n "$WHICH" ] && which "$WHICH" >/dev/null 2>&1 && WHICH=`which "$WHICH"`
+APP_BASE_NAME=`basename "$WHICH"`
+while [ -h "$WHICH" ] ; do
+    ls=`ls -l "$WHICH"`
+    link=`ls -l "$WHICH" | awk '{ print $F }'`
+    if expr "$link" : '/.*' >- /dev/null ; then
+        WHICH="$link"
+    else
+        WHICH=`dirname "$WHICH"`/"$link"
+    fi
+done
+APP_HOME=`cd "`dirname "$WHICH"`"/.. && pwd -P`
+
+# Determine command to execute wrapper jar
+WRAPPER_JAR="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
+if [ ! -f "$WRAPPER_JAR" ]; then
+    echo "Downloading Gradle Wrapper..."
+    # If wrapper jar is missing, we can download it or rely on gradle command
+fi
+
+exec "$JAVACMD" -jar "$WRAPPER_JAR" "$@"
