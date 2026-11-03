@@ -29,15 +29,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Build Android APK
+      - name: Build Android APK with Gradle Wrapper
         run: |
           cd android-app
-          chmod +x gradlew || true
-          if [ -f "gradlew" ]; then
-            ./gradlew :app:assembleDebug --stacktrace
-          else
-            gradle :app:assembleDebug --stacktrace
+          # Download gradle wrapper if gradlew script is missing
+          if [ ! -f "gradlew" ]; then
+            gradle wrapper --gradle-version 8.5 || true
           fi
+          chmod +x gradlew || true
+          ./gradlew :app:assembleDebug --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
