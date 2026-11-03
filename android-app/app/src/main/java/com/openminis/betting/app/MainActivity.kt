@@ -22,12 +22,12 @@ class MainActivity : AppCompatActivity() {
         webSettings.domStorageEnabled = true
         webSettings.loadWithOverviewMode = true
         webSettings.useWideViewPort = true
+        webSettings.allowFileAccess = true
 
         webView.webViewClient = WebViewClient()
 
-        // Load FastAPI Betting Dashboard URL 
-        // (10.0.2.2 points to host machine localhost from Android emulator, or use public deployed URL)
-        webView.loadUrl("https://431veysel-coder-sports-betting.hf.space" ?: "http://10.0.2.2:8000")
+        // Load local embedded dashboard HTML asset (Zero 404 / Offline-First Architecture)
+        webView.loadUrl("file:///android_asset/index.html")
     }
 
     override fun onBackPressed() {

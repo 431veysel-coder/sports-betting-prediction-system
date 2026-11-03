@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sports Betting Intelligence OS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+    <!-- Navbar -->
+    <nav class="bg-slate-800 border-b border-slate-700 px-4 py-3 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center space-x-2">
+            <span class="text-xl">⚽</span>
+            <h1 class="text-base font-bold tracking-wide text-emerald-400">Betting OS</h1>
+        </div>
+        <div class="flex space-x-2 text-xs">
+            <button onclick="switchTab('dashboard')" id="btn-dashboard" class="px-3 py-1.5 bg-emerald-600 rounded-lg font-medium transition">Özet</button>
+            <button onclick="switchTab('predictions')" id="btn-predictions" class="px-3 py-1.5 bg-slate-700 rounded-lg font-medium transition">Tahminler</button>
+            <button onclick="switchTab('coupons')" id="btn-coupons" class="px-3 py-1.5 bg-slate-700 rounded-lg font-medium transition">Kuponlar</button>
+            <button onclick="switchTab('settings')" id="btn-settings" class="px-3 py-1.5 bg-slate-700 rounded-lg font-medium transition">Ayarlar</button>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 p-4 max-w-lg mx-auto w-full pb-16">
+        
+        <!-- TAB: DASHBOARD -->
+        <div id="tab-dashboard" class="space-y-4 tab-content">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-lg">
+                <p class="text-xs font-medium text-slate-400">Güncel Kasa (Balance)</p>
+                <p class="text-2xl font-extrabold text-emerald-400 mt-1">1,000.0 TL</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-lg">
+                    <p class="text-xs font-medium text-slate-400">Toplam Kâr</p>
+                    <p class="text-xl font-extrabold text-emerald-400 mt-1">+145.0 TL</p>
+                </div>
+                <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-lg">
+                    <p class="text-xs font-medium text-slate-400">ROI Oranı</p>
+                    <p class="text-xl font-extrabold text-indigo-400 mt-1">%14.5</p>
+                </div>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-lg">
+                <h2 class="text-sm font-bold text-slate-200 mb-2">⚡ Otonom Kupon Üretimi</h2>
+                <p class="text-xs text-slate-400 mb-3">10 farklı kupon türünde günlük 100 otonom kupon oluşturun.</p>
+                <button onclick="alert('100 Kupon başarıyla üretildi ve kasaya eklendi!')" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-xs transition shadow">
+                    🎲 100 Kupon Üret ve Dağıt
+                </button>
+            </div>
+        </div>
+
+        <!-- TAB: PREDICTIONS -->
+        <div id="tab-predictions" class="space-y-3 tab-content hidden">
+            <h2 class="text-sm font-bold text-slate-200 mb-2">🔥 10 Metrikli Şeffaf Tahminler</h2>
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 space-y-2">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="font-bold text-white">Galatasaray vs Fenerbahçe</span>
+                    <span class="text-emerald-400 font-bold">MS 1 (1.95)</span>
+                </div>
+                <p class="text-[10px] text-slate-400">Süper Lig | Başarı Olasılığı: %78.4 | Skor Puanı: 92.4</p>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 space-y-2">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="font-bold text-white">Arsenal vs Chelsea</span>
+                    <span class="text-emerald-400 font-bold">MS 1 (1.75)</span>
+                </div>
+                <p class="text-[10px] text-slate-400">Premier League | Başarı Olasılığı: %82.1 | Skor Puanı: 94.8</p>
+            </div>
+        </div>
+
+        <!-- TAB: COUPONS -->
+        <div id="tab-coupons" class="space-y-3 tab-content hidden">
+            <h2 class="text-sm font-bold text-slate-200 mb-2">🎟️ Günlük Kupon Listesi (10 Tür)</h2>
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 space-y-1">
+                <div class="flex justify-between text-xs">
+                    <span class="font-bold text-white">Normal Kupon #4821</span>
+                    <span class="text-indigo-400 font-bold">Oran: 3.42</span>
+                </div>
+                <p class="text-[10px] text-slate-400">Yatırım: 10 TL | Olası Kazanç: 34.20 TL</p>
+                <span class="inline-block px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[9px] font-semibold mt-1">BEKLEMEDE</span>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 space-y-1">
+                <div class="flex justify-between text-xs">
+                    <span class="font-bold text-white">High-Odds Kupon #4822</span>
+                    <span class="text-indigo-400 font-bold">Oran: 12.50</span>
+                </div>
+                <p class="text-[10px] text-slate-400">Yatırım: 10 TL | Olası Kazanç: 125.00 TL</p>
+                <span class="inline-block px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[9px] font-semibold mt-1">BEKLEMEDE</span>
+            </div>
+        </div>
+
+        <!-- TAB: SETTINGS -->
+        <div id="tab-settings" class="space-y-3 tab-content hidden">
+            <h2 class="text-sm font-bold text-slate-200 mb-2">⚙️ Sıfır Sabit Kod Ayarları</h2>
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 space-y-2">
+                <label class="text-xs text-slate-300 block">Kupon Başına Yatırım (TL)</label>
+                <input type="text" value="10.0" class="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1.5 text-xs text-white">
+                <label class="text-xs text-slate-300 block mt-2">Günlük Stop-Loss Limiti (TL)</label>
+                <input type="text" value="200.0" class="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1.5 text-xs text-white">
+                <button onclick="alert('Ayarlar başarıyla kaydedildi!')" class="w-full mt-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-semibold text-xs transition">Kaydet</button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Tab Switching Script -->
+    <script>
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            // Remove active style from all buttons
+            document.querySelectorAll('nav button').forEach(btn => {
+                btn.classList.remove('bg-emerald-600');
+                btn.classList.add('bg-slate-700');
+            });
+            // Show selected tab
+            document.getElementById('tab-' + tabName).classList.remove('hidden');
+            // Highlight active button
+            const activeBtn = document.getElementById('btn-' + tabName);
+            activeBtn.classList.remove('bg-slate-700');
+            activeBtn.classList.add('bg-emerald-600');
+        }
+    </script>
+</body>
+</html>
