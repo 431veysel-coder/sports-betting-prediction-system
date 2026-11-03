@@ -19,10 +19,12 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Gradle
+      - name: Setup Gradle (Pinned to 8.5)
         uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.5'
 
-      - name: Build Android APK with Gradle
+      - name: Build Android APK with Gradle 8.5
         run: |
           cd android-app
           gradle :app:assembleDebug --stacktrace
