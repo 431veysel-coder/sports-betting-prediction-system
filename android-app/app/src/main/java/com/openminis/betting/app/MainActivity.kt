@@ -15,7 +15,14 @@ import com.google.gson.Gson
 import com.openminis.betting.app.core.ForegroundDaemon
 import com.openminis.betting.app.core.McpServer
 import com.openminis.betting.app.data.DataRepository
-import com.openminis.betting.app.model.*
+import com.openminis.betting.app.model.Bankroll
+import com.openminis.betting.app.model.BankrollTransaction
+import com.openminis.betting.app.model.Coupon
+import com.openminis.betting.app.model.DataBundle
+import com.openminis.betting.app.model.Match
+import com.openminis.betting.app.model.Prediction
+import com.openminis.betting.app.model.Result
+import com.openminis.betting.app.model.SyncResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -34,7 +41,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Start 7/24 Persistent Foreground Service Daemon
         startDaemonService()
 
         webView = findViewById(R.id.webView)
@@ -47,13 +53,11 @@ class MainActivity : AppCompatActivity() {
         webSettings.allowContentAccess = true
         webSettings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
 
-        // Register Native JS Bridge for Web UI <-> Android Communication
         webView.addJavascriptInterface(WebAppInterface(this), "AndroidBridge")
 
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-                // Initialize bridge after page loads
                 view?.evaluateJavascript("if(window.Bridge) Bridge.ready = true;", null)
             }
         }
@@ -71,11 +75,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        if (webView.canGoBack()) {
-            webView.goBack()
-        } else {
-            super.onBackPressed()
-        }
+        if (webView.canGoBack()) webView.goBack() else super.onBackPressed()
     }
 
     override fun onDestroy() {
@@ -83,38 +83,27 @@ class MainActivity : AppCompatActivity() {
         job.cancel()
     }
 
-    // ============================================
-    // JS BRIDGE INTERFACE
-    // ============================================
     inner class WebAppInterface(private val context: Context) {
 
         @JavascriptInterface
-        fun getAllData(): String {
-            return runBlocking { 
-                gson.toJson(DataBundle(
-                    bankroll = repository.getBankroll(),
-                    matches = repository.getUpcomingMatches(),
-                    predictions = repository.getAllPredictions(),
-                    coupons = repository.getAllCoupons(),
-                    transactions = repository.getRecentTransactions(20)
-                ))
-            }
+        fun getAllData(): String = runBlocking { 
+            gson.toJson(DataBundle(
+                bankroll = repository.getBankroll(),
+                matches = repository.getUpcomingMatches(),
+                predictions = repository.getAllPredictions(),
+                coupons = repository.getAllCoupons(),
+                transactions = repository.getRecentTransactions(20)
+            ))
         }
 
         @JavascriptInterface
-        fun syncLiveData(): String {
-            return runBlocking { 
-                val result = repository.syncLiveData()
-                gson.toJson(result)
-            }
+        fun syncLiveData(): String = runBlocking { 
+            gson.toJson(repository.syncLiveData())
         }
 
         @JavascriptInterface
-        fun generateCoupons(): String {
-            return runBlocking { 
-                val result = repository.generateDailyCoupons()
-                gson.toJson(result)
-            }
+        fun generateCoupons(): String = runBlocking { 
+            gson.toJson(repository.generateDailyCoupons())
         }
 
         @JavascriptInterface
@@ -123,8 +112,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
-        fun getDeviceInfo(): String {
-            return gson.toJson(McpServer.getDeviceInfo())
-        }
+        fun getDeviceInfo(): String = gson.toJson(McpServer.getDeviceInfo())
     }
 }
