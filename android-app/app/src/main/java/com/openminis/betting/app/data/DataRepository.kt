@@ -497,11 +497,11 @@ class DataRepository private constructor(context: Context) {
     private fun generateTestOdds(matches: List<Match>): List<List<Odds>> {
         return matches.map { match ->
             val scenarios = listOf(
-                triple(1.85, 3.60, 4.20),  // Strong home
-                triple(2.10, 3.40, 3.30),  // Moderate home
-                triple(2.50, 3.20, 2.80),  // Even
-                triple(3.50, 3.40, 2.10),  // Moderate away
-                triple(4.50, 3.80, 1.75)   // Strong away
+                Triple(1.85, 3.60, 4.20),  // Strong home
+                Triple(2.10, 3.40, 3.30),  // Moderate home
+                Triple(2.50, 3.20, 2.80),  // Even
+                Triple(3.50, 3.40, 2.10),  // Moderate away
+                Triple(4.50, 3.80, 1.75)   // Strong away
             )
             val (h, d, a) = scenarios.random()
             listOf(Odds(
