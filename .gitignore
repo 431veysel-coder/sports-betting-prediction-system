@@ -6,7 +6,9 @@ __pycache__/
 *.sqlite3
 .env
 logs/
-data/
+data/*.db
+data/*.sqlite
+data/*.sqlite3
 node_modules/
 .vscode/
 .idea/
