@@ -21,7 +21,13 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build Android APK with Gradle
+      - name: Setup Gradle 8.5
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.5'
+          cache-disabled: true
+
+      - name: Build Android APK
         run: |
           cd android-app
           gradle :app:assembleDebug --stacktrace --no-build-cache --no-configuration-cache
