@@ -12,20 +12,21 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.openminis.betting.app.core.ForegroundDaemon
 import com.openminis.betting.app.core.McpServer
 import com.openminis.betting.app.data.DataRepository
 import com.openminis.betting.app.model.*
-import java.lang.reflect.Type
-import java.util.concurrent.Executors
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
     private val gson = Gson()
     private val repository = DataRepository.getInstance(this)
-    private val executor = Executors.newSingleThreadExecutor()
+    private val scope = CoroutineScope(Dispatchers.IO)
 
     @SuppressLint("SetJavaScriptEnabled", "AddJavascriptInterface")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,6 +77,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        scope.cancel()
+    }
+
     // ============================================
     // JS BRIDGE INTERFACE
     // ============================================
@@ -83,23 +89,31 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun getAllData(): String {
-            return gson.toJson(DataBundle(
-                bankroll = repository.getBankroll(),
-                matches = repository.getUpcomingMatches(),
-                predictions = repository.getAllPredictions(),
-                coupons = repository.getAllCoupons(),
-                transactions = repository.getRecentTransactions(20)
-            ))
+            return runBlocking { 
+                gson.toJson(DataBundle(
+                    bankroll = repository.getBankroll(),
+                    matches = repository.getUpcomingMatches(),
+                    predictions = repository.getAllPredictions(),
+                    coupons = repository.getAllCoupons(),
+                    transactions = repository.getRecentTransactions(20)
+                ))
+            }
         }
 
         @JavascriptInterface
         fun syncLiveData(): String {
-            return runBlockingSync { repository.syncLiveData() }
+            return runBlocking { 
+                val result = repository.syncLiveData()
+                gson.toJson(result)
+            }
         }
 
         @JavascriptInterface
         fun generateCoupons(): String {
-            return runBlockingSync { repository.generateDailyCoupons() }
+            return runBlocking { 
+                val result = repository.generateDailyCoupons()
+                gson.toJson(result)
+            }
         }
 
         @JavascriptInterface
@@ -110,16 +124,6 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun getDeviceInfo(): String {
             return gson.toJson(McpServer.getDeviceInfo())
-        }
-
-        private fun runBlockingSync(action: () -> Result): String {
-            try {
-                val result = action()
-                return gson.toJson(result)
-            } catch (e: Exception) {
-                Log.e("Bridge", "Sync error", e)
-                return gson.toJson(Result(success = false, error = e.message))
-            }
         }
     }
 
