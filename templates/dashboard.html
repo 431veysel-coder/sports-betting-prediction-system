@@ -37,14 +37,21 @@
             </div>
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg flex flex-col justify-between">
                 <div>
-                    <p class="text-sm font-medium text-slate-400">Otonom Kupon Üretimi</p>
+                    <p class="text-sm font-medium text-slate-400">Canlı Veri & Kupon</p>
                     <p class="text-xl font-bold text-slate-200 mt-1">{{ coupon_count }} Kupon Üretildi</p>
                 </div>
-                <form action="/generate-coupons" method="POST" class="mt-4">
-                    <button type="submit" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-sm transition shadow">
-                        ⚡ 100 Kupon Üret
-                    </button>
-                </form>
+                <div class="flex space-x-2 mt-4">
+                    <form action="/sync-live-data" method="POST" class="flex-1">
+                        <button type="submit" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg text-xs transition shadow">
+                            🔄 Canlı Veri Çek
+                        </button>
+                    </form>
+                    <form action="/generate-coupons" method="POST" class="flex-1">
+                        <button type="submit" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-xs transition shadow">
+                            ⚡ 100 Kupon
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
 
@@ -53,7 +60,7 @@
             <!-- Top Predictions -->
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg">
                 <h2 class="text-lg font-bold text-slate-200 mb-4 flex items-center">
-                    <span class="mr-2">🔥</span> En Yüksek Puanlı Tahminler (10 Metrik)
+                    <span class="mr-2">🔥</span> Güncel Maç Tahminleri (10 Metrik)
                 </h2>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm text-slate-300">
@@ -61,6 +68,7 @@
                             <tr>
                                 <th class="px-4 py-3">Maç</th>
                                 <th class="px-4 py-3">Lig</th>
+                                <th class="px-4 py-3">Tarih</th>
                                 <th class="px-4 py-3">Tahmin</th>
                                 <th class="px-4 py-3">Puan</th>
                             </tr>
@@ -70,6 +78,7 @@
                             <tr class="hover:bg-slate-700/30">
                                 <td class="px-4 py-3 font-semibold text-white">{{ pred.home_team }} vs {{ pred.away_team }}</td>
                                 <td class="px-4 py-3 text-slate-400">{{ pred.league }}</td>
+                                <td class="px-4 py-3 text-xs text-slate-400">{{ pred.match_date }}</td>
                                 <td class="px-4 py-3 text-emerald-400 font-bold">{{ pred.predicted_outcome }}</td>
                                 <td class="px-4 py-3 text-indigo-400 font-bold">{{ pred.final_score }}</td>
                             </tr>
@@ -82,7 +91,7 @@
             <!-- Recent Coupons -->
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg">
                 <h2 class="text-lg font-bold text-slate-200 mb-4 flex items-center">
-                    <span class="mr-2">🎟️</span> Son Üretilen Kuponlar
+                    <span class="mr-2">🎟️</span> Güncel Otonom Kuponlar
                 </h2>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm text-slate-300">
