@@ -1,4 +1,4 @@
-name: Production Android APK Build (Toolkit Integrated)
+name: Production Android APK Build (Clean)
 
 on:
   push:
@@ -10,8 +10,10 @@ jobs:
   build-apk:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
+      - name: Checkout Repository (Clean)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -19,15 +21,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Gradle (Pinned to 8.5)
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.5'
-
-      - name: Build Android APK with Gradle 8.5
+      - name: Build Android APK with Gradle
         run: |
           cd android-app
-          gradle :app:assembleDebug --stacktrace
+          gradle :app:assembleDebug --stacktrace --no-build-cache --no-configuration-cache
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
