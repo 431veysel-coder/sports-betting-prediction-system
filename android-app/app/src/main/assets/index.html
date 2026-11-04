@@ -2,125 +2,517 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sports Betting Prediction & Bankroll Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Sports Betting Intelligence OS</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    <style>
+        :root { --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #f1f5f9; --muted: #94a3b8; --emerald: #34d399; --rose: #f87171; --indigo: #818cf8; --amber: #fbbf24; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .btn { @apply px-4 py-2.5 rounded-xl font-semibold text-sm transition-all duration-150 active:scale-[0.98]; }
+        .btn-primary { @apply bg-emerald-600 text-white; } .btn-primary:active { background: #059669; }
+        .btn-secondary { @apply bg-indigo-600 text-white; } .btn-secondary:active { background: #4f46e5; }
+        .btn-ghost { @apply bg-slate-800 text-slate-300 border border-slate-700; }
+        .card { @apply bg-slate-800/80 border border-slate-700/50 rounded-2xl p-5 backdrop-blur-sm; }
+        .stat-value { @apply text-3xl font-extrabold tracking-tight; }
+        .stat-label { @apply text-xs font-medium text-slate-400 uppercase tracking-wider; }
+        .badge { @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold; }
+        .badge-pending { @apply bg-amber-500/20 text-amber-400; }
+        .badge-won { @apply bg-emerald-500/20 text-emerald-400; }
+        .badge-lost { @apply bg-rose-500/20 text-rose-400; }
+        .table-container { @apply overflow-x-auto rounded-xl border border-slate-700/50; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { @apply bg-slate-800/50 text-slate-400 text-xs font-semibold uppercase tracking-wider px-4 py-3 text-left; }
+        td { @apply px-4 py-3 border-t border-slate-700/50 text-slate-300; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { @apply bg-slate-700/30; }
+        .loading-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; gap: 16px; }
+        .spinner { width: 40px; height: 40px; border: 3px solid #334155; border-top-color: #34d399; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); opacity: 0; background: #1e293b; border: 1px solid #334155; padding: 14px 24px; border-radius: 12px; display: flex; align-items: center; gap: 10px; z-index: 200; box-shadow: 0 20px 40px rgba(0,0,0,0.4); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .toast.success { border-color: #34d399; }
+        .toast.error { border-color: #f87171; }
+        .empty-state { text-align: center; padding: 40px 20px; color: #64748b; }
+        .empty-state svg { width: 64px; height: 64px; margin-bottom: 16px; opacity: 0.5; }
+        .pull-to-refresh { height: 60px; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 12px; }
+    </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen">
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <p class="text-slate-400 text-sm">Veriler yükleniyor...</p>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast" class="toast" role="alert" aria-live="polite">
+        <svg id="toastIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span id="toastMessage">Mesaj</span>
+    </div>
+
     <!-- Navbar -->
-    <nav class="bg-slate-800 border-b border-slate-700 px-6 py-4 flex justify-between items-center">
-        <div class="flex items-center space-x-3">
-            <span class="text-2xl">⚽</span>
-            <h1 class="text-xl font-bold tracking-wide text-emerald-400">Betting Intelligence & Bankroll OS</h1>
-        </div>
-        <div class="flex space-x-4">
-            <a href="/" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-medium transition">Dashboard</a>
-            <a href="/settings" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-medium transition">Settings</a>
+    <nav class="bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+                </div>
+                <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-emerald-400 to-indigo-400 bg-clip-text text-transparent">Betting Intelligence</h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="refreshBtn" class="btn btn-ghost text-xs px-3 py-2" aria-label="Verileri yenile">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    <span>Yenile</span>
+                </button>
+            </div>
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto px-6 py-8">
-        <!-- Bankroll & Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg">
-                <p class="text-sm font-medium text-slate-400">Güncel Kasa (Balance)</p>
-                <p class="text-3xl font-extrabold text-emerald-400 mt-2">{{ bankroll.current_balance }} TL</p>
-            </div>
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg">
-                <p class="text-sm font-medium text-slate-400">Toplam Kâr / Zarar</p>
-                <p class="text-3xl font-extrabold {% if bankroll.total_profit >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %} mt-2">{{ bankroll.total_profit }} TL</p>
-            </div>
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg">
-                <p class="text-sm font-medium text-slate-400">ROI (Yatırım Getirisi)</p>
-                <p class="text-3xl font-extrabold text-indigo-400 mt-2">%{{ bankroll.roi }}</p>
-            </div>
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg flex flex-col justify-between">
+    <main class="max-w-7xl mx-auto px-4 pb-24">
+        <!-- Pull to Refresh Indicator -->
+        <div id="pullIndicator" class="pull-to-refresh hidden">Aşağı çekerek yenile...</div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-2 gap-3 mb-5" id="statsGrid">
+            <!-- Balance Card -->
+            <article class="card relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent"></div>
+                <p class="stat-label">Güncel Bakiye</p>
+                <p id="balance" class="stat-value text-emerald-400 mt-1" data-value="1000">1000.00 TL</p>
+                <p id="balanceChange" class="text-xs mt-2 hidden"></p>
+            </article>
+            <!-- Total P/L -->
+            <article class="card relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent"></div>
+                <p class="stat-label">Toplam Kâr/Zarar</p>
+                <p id="totalPnl" class="stat-value text-indigo-400 mt-1" data-value="0">0.00 TL</p>
+                <p id="pnlPct" class="text-xs mt-2 hidden"></p>
+            </article>
+            <!-- ROI -->
+            <article class="card relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent"></div>
+                <p class="stat-label">ROI</p>
+                <p id="roi" class="stat-value text-amber-400 mt-1" data-value="0">%0.00</p>
+            </article>
+            <!-- Coupons -->
+            <article class="card relative overflow-hidden flex flex-col justify-between">
                 <div>
-                    <p class="text-sm font-medium text-slate-400">Canlı Veri & Kupon</p>
-                    <p class="text-xl font-bold text-slate-200 mt-1">{{ coupon_count }} Kupon Üretildi</p>
+                    <p class="stat-label">Aktif Kupon</p>
+                    <p id="couponCount" class="stat-value text-slate-200 mt-1">0</p>
                 </div>
-                <div class="flex space-x-2 mt-4">
-                    <form action="/sync-live-data" method="POST" class="flex-1">
-                        <button type="submit" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg text-xs transition shadow">
-                            🔄 Canlı Veri Çek
-                        </button>
-                    </form>
-                    <form action="/generate-coupons" method="POST" class="flex-1">
-                        <button type="submit" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-xs transition shadow">
-                            ⚡ 100 Kupon
-                        </button>
-                    </form>
+                <div class="flex gap-2 mt-4 pt-4 border-t border-slate-700/50">
+                    <button id="syncBtn" class="flex-1 btn btn-primary text-xs py-2" disabled>
+                        <svg class="w-4 h-4 mr-1 animate-spin hidden" id="syncSpinner" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        <span id="syncText">🔄 Veri Çek</span>
+                    </button>
+                    <button id="generateBtn" class="flex-1 btn btn-secondary text-xs py-2" disabled>
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <span id="genText">⚡ Kupon Üret</span>
+                    </button>
+                </div>
+            </article>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex gap-1 mb-4 bg-slate-900/50 rounded-xl p-1 border border-slate-700/50" role="tablist">
+            <button id="tabPredictions" class="tab-btn flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all" role="tab" aria-selected="true">🔥 Tahminler</button>
+            <button id="tabCoupons" class="tab-btn flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all" role="tab" aria-selected="false">🎟️ Kuponlar</button>
+            <button id="tabBankroll" class="tab-btn flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all" role="tab" aria-selected="false">💰 Kasa</button>
+        </div>
+
+        <!-- Tab Panels -->
+        <div id="panelPredictions" class="tab-panel" role="tabpanel">
+            <div class="card">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-base font-bold">Güncel Maç Tahminleri (10 Metrik)</h2>
+                    <span id="predCount" class="badge badge-pending">0 maç</span>
+                </div>
+                <div class="table-container" id="predictionsTable">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Maç</th>
+                                <th class="hidden sm:table-cell">Lig</th>
+                                <th class="hidden md:table-cell">Tarih</th>
+                                <th>Tahmin</th>
+                                <th>Skor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="predictionsBody"></tbody>
+                    </table>
+                </div>
+                <div id="predictionsEmpty" class="empty-state hidden">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                    <p class="font-medium">Henüz tahmin yok</p>
+                    <p class="text-xs mt-1">"Veri Çek" butonuna basın</p>
                 </div>
             </div>
         </div>
 
-        <!-- Top Predictions & Recent Coupons -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Top Predictions -->
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg">
-                <h2 class="text-lg font-bold text-slate-200 mb-4 flex items-center">
-                    <span class="mr-2">🔥</span> Güncel Maç Tahminleri (10 Metrik)
-                </h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm text-slate-300">
-                        <thead class="bg-slate-700/50 text-slate-400 uppercase text-xs">
+        <div id="panelCoupons" class="tab-panel hidden" role="tabpanel">
+            <div class="card">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-base font-bold">Otonom Üretilen Kuponlar</h2>
+                    <span id="couponCountBadge" class="badge badge-pending">0 kupon</span>
+                </div>
+                <div class="table-container" id="couponsTable">
+                    <table>
+                        <thead>
                             <tr>
-                                <th class="px-4 py-3">Maç</th>
-                                <th class="px-4 py-3">Lig</th>
-                                <th class="px-4 py-3">Tarih</th>
-                                <th class="px-4 py-3">Tahmin</th>
-                                <th class="px-4 py-3">Puan</th>
+                                <th>ID</th>
+                                <th>Tür</th>
+                                <th>Oran</th>
+                                <th>Tutar</th>
+                                <th>Durum</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-700">
-                            {% for pred in top_predictions %}
-                            <tr class="hover:bg-slate-700/30">
-                                <td class="px-4 py-3 font-semibold text-white">{{ pred.home_team }} vs {{ pred.away_team }}</td>
-                                <td class="px-4 py-3 text-slate-400">{{ pred.league }}</td>
-                                <td class="px-4 py-3 text-xs text-slate-400">{{ pred.match_date }}</td>
-                                <td class="px-4 py-3 text-emerald-400 font-bold">{{ pred.predicted_outcome }}</td>
-                                <td class="px-4 py-3 text-indigo-400 font-bold">{{ pred.final_score }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
+                        <tbody id="couponsBody"></tbody>
                     </table>
+                </div>
+                <div id="couponsEmpty" class="empty-state hidden">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                    <p class="font-medium">Henüz kupon yok</p>
+                    <p class="text-xs mt-1">Veri çekildikten sonra "Kupon Üret" basın</p>
                 </div>
             </div>
+        </div>
 
-            <!-- Recent Coupons -->
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg">
-                <h2 class="text-lg font-bold text-slate-200 mb-4 flex items-center">
-                    <span class="mr-2">🎟️</span> Güncel Otonom Kuponlar
-                </h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm text-slate-300">
-                        <thead class="bg-slate-700/50 text-slate-400 uppercase text-xs">
-                            <tr>
-                                <th class="px-4 py-3">ID</th>
-                                <th class="px-4 py-3">Tür</th>
-                                <th class="px-4 py-3">Oran</th>
-                                <th class="px-4 py-3">Tutar</th>
-                                <th class="px-4 py-3">Durum</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-700">
-                            {% for c in recent_coupons %}
-                            <tr class="hover:bg-slate-700/30">
-                                <td class="px-4 py-3 font-mono text-slate-400">{{ c.id }}</td>
-                                <td class="px-4 py-3 font-semibold text-white">{{ c.coupon_type }}</td>
-                                <td class="px-4 py-3 text-indigo-400 font-bold">{{ c.total_odds }}</td>
-                                <td class="px-4 py-3 text-slate-300">{{ c.stake }} TL</td>
-                                <td class="px-4 py-3">
-                                    <span class="px-2 py-1 bg-amber-500/20 text-amber-400 rounded text-xs font-semibold">{{ c.status }}</span>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
+        <div id="panelBankroll" class="tab-panel hidden" role="tabpanel">
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <article class="card text-center">
+                    <p class="stat-label">Mevcut Bakiye</p>
+                    <p id="bankrollCurrent" class="stat-value text-emerald-400">1000.00 TL</p>
+                </article>
+                <article class="card text-center">
+                    <p class="stat-label">Kullanılabilir</p>
+                    <p id="bankrollAvailable" class="stat-value text-indigo-400">1000.00 TL</p>
+                </article>
+                <article class="card text-center">
+                    <p class="stat-label">Rezerve</p>
+                    <p id="bankrollReserved" class="stat-value text-amber-400">0.00 TL</p>
+                </article>
+                <article class="card text-center">
+                    <p class="stat-label">Max Drawdown</p>
+                    <p id="bankrollDrawdown" class="stat-value text-rose-400">0.00 TL</p>
+                </article>
+            </div>
+            <div class="card">
+                <h3 class="font-bold mb-3 flex items-center gap-2"><svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg> Son İşlemler</h3>
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Tarih</th><th>Tür</th><th>Tutar</th><th>Not</th></tr></thead>
+                        <tbody id="transactionsBody"></tbody>
                     </table>
                 </div>
+                <div id="transactionsEmpty" class="empty-state hidden"><p class="text-sm">Henüz işlem yok</p></div>
             </div>
         </div>
     </main>
+
+    <!-- Floating Action Button for Debug -->
+    <button id="debugBtn" class="fixed bottom-24 right-4 w-12 h-12 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center z-40" aria-label="Debug">
+        <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+    </button>
+
+    <script>
+    // ============================================
+    // ANDROID BRIDGE & STATE MANAGEMENT
+    // ============================================
+    const Bridge = {
+        ready: false,
+        callbacks: new Map(),
+        call(method, args = []) {
+            return new Promise((resolve, reject) => {
+                if (!window.AndroidBridge) {
+                    reject(new Error('AndroidBridge not available'));
+                    return;
+                }
+                const id = Date.now() + Math.random();
+                this.callbacks.set(id, { resolve, reject });
+                try {
+                    const result = window.AndroidBridge[method](...args);
+                    if (result && typeof result === 'string') {
+                        resolve(JSON.parse(result));
+                    } else {
+                        resolve(result);
+                    }
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        },
+        async init() {
+            this.ready = true;
+            // Load initial data from native
+            try {
+                const data = await this.call('getAllData');
+                if (data) App.state = { ...App.state, ...data };
+            } catch (e) {
+                console.log('Using default state');
+            }
+            App.render();
+        }
+    };
+
+    // ============================================
+    // APP STATE
+    // ============================================
+    const App = {
+        state: {
+            bankroll: { current_balance: 1000, available_balance: 1000, reserved_balance: 0, total_profit: 0, roi: 0, max_drawdown: 0 },
+            matches: [],
+            predictions: [],
+            coupons: [],
+            transactions: [],
+            lastSync: null
+        },
+        async syncData() {
+            UI.showLoading('Veriler senkronize ediliyor...');
+            try {
+                const result = await Bridge.call('syncLiveData');
+                if (result && result.success) {
+                    App.state.matches = result.matches || [];
+                    App.state.predictions = result.predictions || [];
+                    UI.showToast('Veriler güncellendi! ' + (result.count || 0) + ' maç', 'success');
+                } else {
+                    throw new Error(result?.error || 'Sync failed');
+                }
+            } catch (e) {
+                console.error('Sync error:', e);
+                UI.showToast('Senklonizasyon hatası: ' + e.message, 'error');
+            } finally {
+                UI.hideLoading();
+                App.render();
+            }
+        },
+        async generateCoupons() {
+            UI.showLoading('Kuponlar üretiliyor...');
+            try {
+                const result = await Bridge.call('generateCoupons');
+                if (result && result.success) {
+                    App.state.coupons = result.coupons || [];
+                    App.state.bankroll = result.bankroll || App.state.bankroll;
+                    UI.showToast(result.count + ' kupon üretildi!', 'success');
+                } else {
+                    throw new Error(result?.error || 'Generation failed');
+                }
+            } catch (e) {
+                console.error('Coupon error:', e);
+                UI.showToast('Kupon üretim hatası: ' + e.message, 'error');
+            } finally {
+                UI.hideLoading();
+                App.render();
+            }
+        },
+        render() {
+            UI.renderStats(App.state.bankroll);
+            UI.renderPredictions(App.state.predictions);
+            UI.renderCoupons(App.state.coupons);
+            UI.renderBankroll(App.state.bankroll);
+            UI.renderTransactions(App.state.transactions);
+        }
+    };
+
+    // ============================================
+    // UI RENDERING
+    // ============================================
+    const UI = {
+        showLoading(msg) {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            document.getElementById('loadingOverlay').querySelector('p').textContent = msg;
+        },
+        hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        },
+        showToast(msg, type = 'info') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toastIcon');
+            const message = document.getElementById('toastMessage');
+            message.textContent = msg;
+            toast.className = 'toast show ' + (type === 'error' ? 'error' : type === 'success' ? 'success' : '');
+            icon.innerHTML = type === 'error' 
+                ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>'
+                : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>';
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        },
+        formatNumber(n, decimals = 2) {
+            return Number(n).toLocaleString('tr-TR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+        },
+        renderStats(b) {
+            document.getElementById('balance').textContent = this.formatNumber(b.current_balance) + ' TL';
+            document.getElementById('balance').dataset.value = b.current_balance;
+            document.getElementById('totalPnl').textContent = this.formatNumber(b.total_profit) + ' TL';
+            document.getElementById('totalPnl').className = 'stat-value ' + (b.total_profit >= 0 ? 'text-emerald-400' : 'text-rose-400');
+            document.getElementById('roi').textContent = '%' + this.formatNumber(b.roi);
+            document.getElementById('couponCount').textContent = App.state.coupons?.length || 0;
+            // Enable buttons if we have predictions
+            const hasPredictions = App.state.predictions?.length > 0;
+            document.getElementById('generateBtn').disabled = !hasPredictions;
+            document.getElementById('syncBtn').disabled = false;
+        },
+        renderPredictions(preds) {
+            const body = document.getElementById('predictionsBody');
+            const empty = document.getElementById('predictionsEmpty');
+            const table = document.getElementById('predictionsTable');
+            const countEl = document.getElementById('predCount');
+            if (!preds || preds.length === 0) {
+                body.innerHTML = '';
+                empty.classList.remove('hidden');
+                table.classList.add('hidden');
+                countEl.textContent = '0 maç';
+                return;
+            }
+            empty.classList.add('hidden');
+            table.classList.remove('hidden');
+            countEl.textContent = preds.length + ' maç';
+            countEl.className = 'badge bg-emerald-500/20 text-emerald-400';
+            body.innerHTML = preds.map(p => {
+                const match = App.state.matches.find(m => m.id === p.match_id) || {};
+                const home = match.home_team || 'Ev Sahibi';
+                const away = match.away_team || 'Deplasman';
+                const league = match.league || '';
+                const date = match.match_date ? new Date(match.match_date).toLocaleDateString('tr-TR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : '';
+                const outcomeLabels = { HOME_WIN: '1 (Ev)', DRAW: 'X (Beraberlik)', AWAY_WIN: '2 (Deplasman)', OVER_25: 'Üst 2.5', UNDER_25: 'Alt 2.5', BTTS_YES: 'KG Var', BTTS_NO: 'KG Yok' };
+                return `<tr>
+                    <td><strong>${home}</strong> vs ${away}</td>
+                    <td class="hidden sm:table-cell text-slate-400 text-xs">${league}</td>
+                    <td class="hidden md:table-cell text-slate-400 text-xs">${date}</td>
+                    <td><span class="badge bg-emerald-500/20 text-emerald-400">${outcomeLabels[p.predicted_outcome] || p.predicted_outcome}</span></td>
+                    <td class="text-indigo-400 font-bold">${p.final_score?.toFixed(1) || '0'}</td>
+                </tr>`;
+            }).join('');
+        },
+        renderCoupons(coupons) {
+            const body = document.getElementById('couponsBody');
+            const empty = document.getElementById('couponsEmpty');
+            const table = document.getElementById('couponsTable');
+            const badge = document.getElementById('couponCountBadge');
+            if (!coupons || coupons.length === 0) {
+                body.innerHTML = '';
+                empty.classList.remove('hidden');
+                table.classList.add('hidden');
+                badge.textContent = '0 kupon';
+                badge.className = 'badge badge-pending';
+                return;
+            }
+            empty.classList.add('hidden');
+            table.classList.remove('hidden');
+            badge.textContent = coupons.length + ' kupon';
+            badge.className = 'badge bg-indigo-500/20 text-indigo-400';
+            const typeLabels = {
+                SINGLE: 'Tekli', ACCUMULATOR_2: 'İkili', ACCUMULATOR_3: 'Üçlü', ACCUMULATOR_4: '4lü',
+                ACCUMULATOR_5: '5li', ACCUMULATOR_6: '6lı', SYSTEM_2_3: 'Sistem 2/3', SYSTEM_3_4: 'Sistem 3/4',
+                LUCKY15: 'Lucky 15', LUCKY31: 'Lucky 31', YANKEE: 'Yankee', CANADIAN: 'Canadian'
+            };
+            const statusLabels = { PENDING: 'Bekliyor', WON: 'Kazandı', LOST: 'Kaybedildi', CANCELLED: 'İptal', VOIDED: 'Geçersiz' };
+            const statusClasses = { PENDING: 'badge-pending', WON: 'badge-won', LOST: 'badge-lost', CANCELLED: 'badge-lost', VOIDED: 'badge-lost' };
+            body.innerHTML = coupons.map(c => {
+                const status = c.status || 'PENDING';
+                return `<tr>
+                    <td class="font-mono text-slate-400 text-xs">${c.id}</td>
+                    <td class="font-semibold">${typeLabels[c.coupon_type] || c.coupon_type}</td>
+                    <td class="text-indigo-400 font-bold">${c.total_odds?.toFixed(2) || '0'}</td>
+                    <td class="text-slate-300">${c.stake?.toFixed(2) || '0'} TL</td>
+                    <td><span class="badge ${statusClasses[status] || 'badge-pending'}">${statusLabels[status] || status}</span></td>
+                </tr>`;
+            }).join('');
+        },
+        renderBankroll(b) {
+            document.getElementById('bankrollCurrent').textContent = this.formatNumber(b.current_balance) + ' TL';
+            document.getElementById('bankrollAvailable').textContent = this.formatNumber(b.available_balance) + ' TL';
+            document.getElementById('bankrollReserved').textContent = this.formatNumber(b.reserved_balance) + ' TL';
+            document.getElementById('bankrollDrawdown').textContent = this.formatNumber(b.max_drawdown) + ' TL';
+        },
+        renderTransactions(txns) {
+            const body = document.getElementById('transactionsBody');
+            const empty = document.getElementById('transactionsEmpty');
+            if (!txns || txns.length === 0) {
+                body.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+            const typeLabels = { STAKE: 'Bahis', WINNING: 'Kazanç', DEPOSIT: 'Yatırım', WITHDRAWAL: 'Çekim', REFUND: 'İade', FEE: 'Komisyon' };
+            const typeColors = { STAKE: 'text-amber-400', WINNING: 'text-emerald-400', DEPOSIT: 'text-indigo-400', WITHDRAWAL: 'text-rose-400', REFUND: 'text-emerald-400', FEE: 'text-slate-400' };
+            body.innerHTML = txns.slice(0, 20).map(t => `
+                <tr>
+                    <td class="text-xs text-slate-400">${t.timestamp ? new Date(t.timestamp).toLocaleDateString('tr-TR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : ''}</td>
+                    <td><span class="badge" style="background: ${typeColors[t.txn_type] || '#334155'}20; color: ${typeColors[t.txn_type] || '#94a3b8'}">${typeLabels[t.txn_type] || t.txn_type}</span></td>
+                    <td class="${t.amount >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-semibold">${t.amount >= 0 ? '+' : ''}${this.formatNumber(t.amount)} TL</td>
+                    <td class="text-slate-400 text-xs">${t.note || ''}</td>
+                </tr>`).join('');
+        }
+    };
+
+    // ============================================
+    // TABS
+    // ============================================
+    const Tabs = {
+        init() {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => this.switch(btn.id.replace('tab', '').toLowerCase()));
+            });
+        },
+        switch(name) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                const active = btn.id.toLowerCase().includes(name);
+                btn.className = 'tab-btn flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ' +
+                    (active ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200');
+                btn.setAttribute('aria-selected', active);
+            });
+            document.querySelectorAll('.tab-panel').forEach(panel => {
+                panel.classList.toggle('hidden', !panel.id.includes(name));
+            });
+        }
+    };
+
+    // ============================================
+    // EVENT LISTENERS
+    // ============================================
+    function initEvents() {
+        document.getElementById('syncBtn').addEventListener('click', () => App.syncData());
+        document.getElementById('generateBtn').addEventListener('click', () => App.generateCoupons());
+        document.getElementById('refreshBtn').addEventListener('click', () => App.syncData());
+        document.getElementById('debugBtn').addEventListener('click', () => {
+            console.log('App State:', App.state);
+            UI.showToast('State logged to console', 'info');
+        });
+        Tabs.init();
+    }
+
+    // ============================================
+    // INIT
+    // ============================================
+    document.addEventListener('DOMContentLoaded', async () => {
+        initEvents();
+        await Bridge.init();
+        // Initial sync if no data
+        if (App.state.predictions.length === 0) {
+            setTimeout(() => App.syncData(), 500);
+        }
+    });
+
+    // Pull to refresh (simple touch handling)
+    let touchStartY = 0;
+    document.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, { passive: true });
+    document.addEventListener('touchmove', e => {
+        const y = e.touches[0].clientY;
+        const diff = y - touchStartY;
+        const indicator = document.getElementById('pullIndicator');
+        if (diff > 60 && window.scrollY === 0) {
+            indicator.classList.remove('hidden');
+        } else {
+            indicator.classList.add('hidden');
+        }
+    }, { passive: true });
+    document.addEventListener('touchend', e => {
+        const indicator = document.getElementById('pullIndicator');
+        if (!indicator.classList.contains('hidden') && window.scrollY === 0) {
+            App.syncData();
+        }
+        indicator.classList.add('hidden');
+    }, { passive: true });
+    </script>
 </body>
 </html>

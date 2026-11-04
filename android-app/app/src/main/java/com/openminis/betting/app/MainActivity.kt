@@ -5,19 +5,29 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.webkit.JavascriptInterface
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.openminis.betting.app.core.ForegroundDaemon
 import com.openminis.betting.app.core.McpServer
+import com.openminis.betting.app.data.DataRepository
+import com.openminis.betting.app.model.*
+import java.lang.reflect.Type
+import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
+    private val gson = Gson()
+    private val repository = DataRepository.getInstance(this)
+    private val executor = Executors.newSingleThreadExecutor()
 
-    @SuppressLint("SetJavaScriptEnabled")
+    @SuppressLint("SetJavaScriptEnabled", "AddJavascriptInterface")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -32,11 +42,20 @@ class MainActivity : AppCompatActivity() {
         webSettings.loadWithOverviewMode = true
         webSettings.useWideViewPort = true
         webSettings.allowFileAccess = true
+        webSettings.allowContentAccess = true
+        webSettings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
 
-        // Register Native JS Bridge for Web UI <-> Android MCP Communication
+        // Register Native JS Bridge for Web UI <-> Android Communication
         webView.addJavascriptInterface(WebAppInterface(this), "AndroidBridge")
 
-        webView.webViewClient = WebViewClient()
+        webView.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                // Initialize bridge after page loads
+                view?.evaluateJavascript("if(window.Bridge) Bridge.ready = true;", null)
+            }
+        }
+
         webView.loadUrl("file:///android_asset/index.html")
     }
 
@@ -57,17 +76,71 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // JS Bridge class accessible from HTML/JS
-    inner class WebAppInterface(private val mContext: Context) {
-        
+    // ============================================
+    // JS BRIDGE INTERFACE
+    // ============================================
+    inner class WebAppInterface(private val context: Context) {
+
+        @JavascriptInterface
+        fun getAllData(): String {
+            return gson.toJson(DataBundle(
+                bankroll = repository.getBankroll(),
+                matches = repository.getUpcomingMatches(),
+                predictions = repository.getAllPredictions(),
+                coupons = repository.getAllCoupons(),
+                transactions = repository.getRecentTransactions(20)
+            ))
+        }
+
+        @JavascriptInterface
+        fun syncLiveData(): String {
+            return runBlockingSync { repository.syncLiveData() }
+        }
+
+        @JavascriptInterface
+        fun generateCoupons(): String {
+            return runBlockingSync { repository.generateDailyCoupons() }
+        }
+
         @JavascriptInterface
         fun sendNotification(title: String, body: String) {
-            McpServer.sendNotification(mContext, title, body)
+            McpServer.sendNotification(context, title, body)
         }
 
         @JavascriptInterface
         fun getDeviceInfo(): String {
-            return McpServer.getDeviceInfo().toString()
+            return gson.toJson(McpServer.getDeviceInfo())
+        }
+
+        private fun runBlockingSync(action: () -> Result): String {
+            try {
+                val result = action()
+                return gson.toJson(result)
+            } catch (e: Exception) {
+                Log.e("Bridge", "Sync error", e)
+                return gson.toJson(Result(success = false, error = e.message))
+            }
         }
     }
+
+    // ============================================
+    // DATA CLASSES FOR BRIDGE
+    // ============================================
+    data class DataBundle(
+        val bankroll: Bankroll,
+        val matches: List<Match>,
+        val predictions: List<Prediction>,
+        val coupons: List<Coupon>,
+        val transactions: List<BankrollTransaction>
+    )
+
+    data class Result(
+        val success: Boolean = true,
+        val count: Int = 0,
+        val matches: List<Match> = emptyList(),
+        val predictions: List<Prediction> = emptyList(),
+        val coupons: List<Coupon> = emptyList(),
+        val bankroll: Bankroll? = null,
+        val error: String? = null
+    )
 }
