@@ -19,7 +19,6 @@ import com.openminis.betting.app.model.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 class MainActivity : AppCompatActivity() {
@@ -128,25 +127,4 @@ class MainActivity : AppCompatActivity() {
             return gson.toJson(McpServer.getDeviceInfo())
         }
     }
-
-    // ============================================
-    // DATA CLASSES FOR BRIDGE
-    // ============================================
-    data class DataBundle(
-        val bankroll: Bankroll,
-        val matches: List<Match>,
-        val predictions: List<Prediction>,
-        val coupons: List<Coupon>,
-        val transactions: List<BankrollTransaction>
-    )
-
-    data class Result(
-        val success: Boolean = true,
-        val count: Int = 0,
-        val matches: List<Match> = emptyList(),
-        val predictions: List<Prediction> = emptyList(),
-        val coupons: List<Coupon> = emptyList(),
-        val bankroll: Bankroll? = null,
-        val error: String? = null
-    )
 }

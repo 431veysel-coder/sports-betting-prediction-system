@@ -105,3 +105,32 @@ data class CouponLeg(
     @SerializedName("stake_allocated") val stakeAllocated: Double,
     val status: String = "PENDING"
 )
+
+// Bridge data classes
+data class DataBundle(
+    val bankroll: Bankroll,
+    val matches: List<Match>,
+    val predictions: List<Prediction>,
+    val coupons: List<Coupon>,
+    val transactions: List<BankrollTransaction>
+)
+
+data class SyncResult(
+    val success: Boolean = true,
+    val count: Int = 0,
+    val matches: List<Match> = emptyList(),
+    val predictions: List<Prediction> = emptyList(),
+    val coupons: List<Coupon> = emptyList(),
+    val bankroll: Bankroll? = null,
+    val error: String? = null
+)
+
+data class Result(
+    val success: Boolean = true,
+    val count: Int = 0,
+    val matches: List<Match> = emptyList(),
+    val predictions: List<Prediction> = emptyList(),
+    val coupons: List<Coupon> = emptyList(),
+    val bankroll: Bankroll? = null,
+    val error: String? = null
+)
