@@ -18,6 +18,7 @@ import com.openminis.betting.app.data.DataRepository
 import com.openminis.betting.app.model.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
@@ -26,7 +27,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var webView: WebView
     private val gson = Gson()
     private val repository = DataRepository.getInstance(this)
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val job = Job()
+    private val scope = CoroutineScope(Dispatchers.IO + job)
 
     @SuppressLint("SetJavaScriptEnabled", "AddJavascriptInterface")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -79,7 +81,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        scope.cancel()
+        job.cancel()
     }
 
     // ============================================
