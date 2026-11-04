@@ -9,6 +9,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import com.openminis.betting.app.CrashReporter
 import com.openminis.betting.app.R
 
 class ForegroundDaemon : Service() {
@@ -17,13 +18,25 @@ class ForegroundDaemon : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        startForegroundServiceNotification()
-        // Initialize background WebSocket & Sync Engine
-        WebSyncBridge.initRealtimeSync(this)
+        CrashReporter.init(this)
+        CrashReporter.getInstance().logInfo("ForegroundDaemon", "Service created")
+        
+        try {
+            startForegroundServiceNotification()
+            WebSyncBridge.initRealtimeSync(this)
+            CrashReporter.getInstance().logInfo("ForegroundDaemon", "Service initialized successfully")
+        } catch (e: Exception) {
+            CrashReporter.getInstance().logError("ForegroundDaemon", "onCreate failed", e)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         return START_STICKY
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        CrashReporter.getInstance().logInfo("ForegroundDaemon", "Service destroyed")
     }
 
     private fun startForegroundServiceNotification() {

@@ -8,6 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.openminis.betting.app.CrashReporter
 import com.openminis.betting.app.model.*
 import java.lang.reflect.Type
 import java.text.SimpleDateFormat
@@ -41,6 +42,9 @@ class DataRepository private constructor(context: Context) {
             } else {
                 Bankroll()
             }
+        } catch (e: Exception) {
+            CrashReporter.getInstance().logError("DataRepository", "getBankroll failed", e)
+            Bankroll()
         } finally {
             cursor.close()
         }
