@@ -349,9 +349,10 @@ class DataRepository private constructor(context: Context) {
                 val coupon = Coupon(
                     id = "SNG_${System.currentTimeMillis()}_${i}",
                     couponType = "SINGLE",
-                    totalOdds = kotlin.math.roundToLong(oddVal * 100) / 100.0,
+                    totalOdds = Math.round(oddVal * 100).toLong() / 100.0,
                     stake = stakePerCoupon,
-                    potentialReturn = kotlin.math.roundToLong(stakePerCoupon * oddVal * 100) / 100.0,
+                    potentialReturn = Math.round(stakePerCoupon * oddVal * 100).toLong() / 100.0,
+                    totalLegs = 1,
                     createdAt = now
                 )
                 newCoupons.add(coupon)
@@ -374,9 +375,10 @@ class DataRepository private constructor(context: Context) {
                 val coupon = Coupon(
                     id = "ACC_${System.currentTimeMillis()}_${i}",
                     couponType = "ACCUMULATOR_4",
-                    totalOdds = kotlin.math.roundToLong(totalOdds * 100) / 100.0,
+                    totalOdds = Math.round(totalOdds * 100).toLong() / 100.0,
                     stake = stakePerCoupon,
-                    potentialReturn = kotlin.math.roundToLong(stakePerCoupon * totalOdds * 100) / 100.0,
+                    potentialReturn = Math.round(stakePerCoupon * totalOdds * 100).toLong() / 100.0,
+                    totalLegs = 4,
                     createdAt = now
                 )
                 newCoupons.add(coupon)
@@ -399,9 +401,10 @@ class DataRepository private constructor(context: Context) {
                 val coupon = Coupon(
                     id = "SYS_${System.currentTimeMillis()}_${i}",
                     couponType = "SYSTEM_2_3",
-                    totalOdds = kotlin.math.roundToLong(totalOdds * 100) / 100.0,
+                    totalOdds = Math.round(totalOdds * 100).toLong() / 100.0,
                     stake = stakePerCoupon,
-                    potentialReturn = kotlin.math.roundToLong(stakePerCoupon * totalOdds * 100) / 100.0,
+                    potentialReturn = Math.round(stakePerCoupon * totalOdds * 100).toLong() / 100.0,
+                    totalLegs = 3,
                     createdAt = now
                 )
                 newCoupons.add(coupon)
