@@ -9,6 +9,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_LOGS" />
 
     <application
         android:allowBackup="true"
@@ -33,12 +34,24 @@
             android:exported="false"
             android:theme="@style/Theme.AppCompat.Light.DarkActionBar" />
 
+        <activity
+            android:name=".debug.DebugChatActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Light.DarkActionBar" />
+
         <!-- 7/24 Persistent Background Daemon Service -->
         <service
             android:name=".core.ForegroundDaemon"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="shortService" />
+
+        <!-- Remote Debug Service for AI-assisted debugging -->
+        <service
+            android:name=".debug.RemoteDebugService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
     </application>
 

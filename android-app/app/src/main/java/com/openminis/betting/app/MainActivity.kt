@@ -117,6 +117,27 @@ class MainActivity : AppCompatActivity() {
         CrashReporter.getInstance().logInfo("MainActivity", "Application destroyed")
     }
 
+    override fun onCreateOptionsMenu(menu: android.view.Menu): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_debug_chat -> {
+                val intent = Intent(this, com.openminis.betting.app.debug.DebugChatActivity::class.java)
+                startActivity(intent)
+                true
+            }
+            R.id.action_logs -> {
+                val intent = Intent(this, LogViewerActivity::class.java)
+                startActivity(intent)
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
     // ============================================
     // JS BRIDGE INTERFACE
     // ============================================
