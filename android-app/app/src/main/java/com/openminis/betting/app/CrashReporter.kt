@@ -161,19 +161,22 @@ class CrashReporter private constructor(context: Context) {
         val zipFile = File(logDir, "logs_export_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.zip")
         try {
             java.util.zip.ZipOutputStream(File(zipFile).outputStream()).use { zip ->
-                logDir.listFiles()?.forEach { file ->
-                    val name = file.name
-                    val dotIndex = name.lastIndexOf('.')
-                    val ext: String
-                    if (dotIndex >= 0) {
-                        ext = name.substring(dotIndex + 1).toLowerCase()
-                    } else {
-                        ext = ""
-                    }
-                    if (ext == "log" || ext == "txt") {
-                        zip.putNextEntry(java.util.zip.ZipEntry(file.name))
-                        file.inputStream().copyTo(zip)
-                        zip.closeEntry()
+                val files = logDir.listFiles()
+                if (files != null) {
+                    for (file in files) {
+                        val name = file.name
+                        val dotIndex = name.lastIndexOf('.')
+                        val ext: String
+                        if (dotIndex >= 0 && dotIndex < name.length - 1) {
+                            ext = name.substring(dotIndex + 1).toLowerCase(Locale.US)
+                        } else {
+                            ext = ""
+                        }
+                        if (ext == "log" || ext == "txt") {
+                            zip.putNextEntry(java.util.zip.ZipEntry(file.name))
+                            file.inputStream().copyTo(zip)
+                            zip.closeEntry()
+                        }
                     }
                 }
             }
