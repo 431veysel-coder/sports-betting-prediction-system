@@ -128,7 +128,7 @@ class CrashReporter private constructor(context: Context) {
             val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
             val crashFile = File(logDir, "crash_${`type`}_$timestamp.txt")
             FileWriter(crashFile).use { writer ->
-                writer.write(buildLogEntry("CRASH", type, throwable.message ?: "Unknown", throwable))
+                writer.write(buildLogEntry("CRASH", `type`, throwable.message ?: "Unknown", throwable))
                 writer.write("\n--- FULL THREAD DUMP ---\n")
                 Thread.getAllStackTraces().forEach { (thread, stack) ->
                     writer.write("$thread:\n")
@@ -177,12 +177,6 @@ class CrashReporter private constructor(context: Context) {
                     }
                 }
             }
-            return zipFile
-        } catch (e: Exception) {
-            logError("CrashReporter", "Failed to export logs", e)
-            return null
-        }
-    }
             return zipFile
         } catch (e: Exception) {
             logError("CrashReporter", "Failed to export logs", e)
