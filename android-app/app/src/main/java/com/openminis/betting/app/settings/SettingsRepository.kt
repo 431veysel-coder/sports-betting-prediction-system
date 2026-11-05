@@ -234,7 +234,7 @@ class SettingsRepository(private val context: Context) {
         set(value) = prefs.edit().putBoolean(KEY_DEBUG_MODE, value).apply()
 
     var logLevel: String
-        get() = prefs.getString(KEY_LOG_LEVEL, "INFO")
+        get() = prefs.getString(KEY_LOG_LEVEL, "INFO") ?: "INFO"
         set(value) = prefs.edit().putString(KEY_LOG_LEVEL, value).apply()
 
     // ============================================
@@ -258,7 +258,9 @@ class SettingsRepository(private val context: Context) {
 
     fun importSettings(json: String): Boolean {
         return try {
-            val type = object : TypeToken<Map<String, Any>>() {}.type
+            val type = com.google.gson.reflect.TypeToken.getParameterized(
+                Map::class.java, String::class.java, Any::class.java
+            ).type
             val map = gson.fromJson<Map<String, Any>>(json, type) ?: return false
             val editor = prefs.edit()
             for ((key, value) in map) {
