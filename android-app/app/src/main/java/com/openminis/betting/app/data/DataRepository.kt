@@ -720,11 +720,16 @@ class DataRepository private constructor(context: Context) {
 // ============================================
 class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "sports_betting.db", null, 2) {
 
-    override fun onCreate(db: SQLiteDatabase) {
-        // Enable foreign keys
-        db.execSQL("PRAGMA foreign_keys = ON;")
+    override fun onConfigure(db: SQLiteDatabase) {
+        super.onConfigure(db)
+        // Enable WAL mode BEFORE any transaction starts
         db.execSQL("PRAGMA journal_mode = WAL;")
+        db.execSQL("PRAGMA foreign_keys = ON;")
+    }
 
+    override fun onCreate(db: SQLiteDatabase) {
+        // Foreign keys and WAL already enabled in onConfigure()
+        
         // bankroll
         db.execSQL("""
             CREATE TABLE bankroll (
