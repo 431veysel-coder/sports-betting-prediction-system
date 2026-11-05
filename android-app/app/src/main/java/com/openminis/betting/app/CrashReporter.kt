@@ -151,34 +151,4 @@ class CrashReporter private constructor(context: Context) {
             "Failed to read logs: ${e.message}"
         }
     }
-
-    fun exportLogs(): File? {
-        val zipFile = File(logDir, "logs_export_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.zip")
-        try {
-            java.util.zip.ZipOutputStream(File(zipFile).outputStream()).use { zip ->
-                val files = logDir.listFiles()
-                if (files != null) {
-                    for (file in files) {
-                        val name = file.name
-                        val dotIndex = name.lastIndexOf('.')
-                        var ext = ""
-                        if (dotIndex >= 0 && dotIndex < name.length - 1) {
-                            val sub = name.substring(dotIndex + 1)
-                            // Use simple character comparison instead of toLowerCase to avoid stdlib issues
-                            ext = sub
-                        }
-                        if (ext == "log" || ext == "txt" || ext == "LOG" || ext == "TXT") {
-                            zip.putNextEntry(java.util.zip.ZipEntry(file.name))
-                            file.inputStream().copyTo(zip)
-                            zip.closeEntry()
-                        }
-                    }
-                }
-            }
-            return zipFile
-        } catch (e: Exception) {
-            logError("CrashReporter", "Failed to export logs", e)
-            return null
-        }
-    }
 }
