@@ -166,7 +166,7 @@ class CrashReporter private constructor(context: Context) {
                     val dotIndex = name.lastIndexOf('.')
                     val ext: String
                     if (dotIndex >= 0) {
-                        ext = name.substring(dotIndex + 1).toLowerCase(Locale.getDefault())
+                        ext = name.substring(dotIndex + 1).toLowerCase()
                     } else {
                         ext = ""
                     }
