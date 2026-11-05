@@ -29,16 +29,12 @@ class CrashReporter private constructor(context: Context) {
     }
 
     init {
-        // Create log directory
         logDir = File(context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), "crash_logs")
         if (!logDir.exists()) logDir.mkdirs()
 
-        // Set up global exception handler
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             logCrash(throwable, "UNCAUGHT_EXCEPTION")
-            // Save to file immediately
             saveCrashToFile(throwable, "UNCAUGHT_EXCEPTION")
-            // Allow default handler to show system dialog
             System.exit(1)
         }
     }
@@ -115,7 +111,6 @@ class CrashReporter private constructor(context: Context) {
                 val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
                 val logFile = File(logDir, "app_$dateStr.log")
                 FileWriter(logFile, true).use { it.write(log) }
-                // Clean old logs (keep 7 days)
                 cleanOldLogs()
             } catch (e: Exception) {
                 Log.e("CRASH_REPORTER", "Failed to write log", e)
@@ -123,12 +118,12 @@ class CrashReporter private constructor(context: Context) {
         }
     }
 
-    private fun saveCrashToFile(throwable: Throwable, `type`: String) {
+    private fun saveCrashToFile(throwable: Throwable, type: String) {
         try {
             val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
-            val crashFile = File(logDir, "crash_${`type`}_$timestamp.txt")
+            val crashFile = File(logDir, "crash_${type}_$timestamp.txt")
             FileWriter(crashFile).use { writer ->
-                writer.write(buildLogEntry("CRASH", `type`, throwable.message ?: "Unknown", throwable))
+                writer.write(buildLogEntry("CRASH", type, throwable.message ?: "Unknown", throwable))
                 writer.write("\n--- FULL THREAD DUMP ---\n")
                 Thread.getAllStackTraces().forEach { (thread, stack) ->
                     writer.write("$thread:\n")
@@ -141,7 +136,7 @@ class CrashReporter private constructor(context: Context) {
     }
 
     private fun cleanOldLogs() {
-        val cutoff = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000 // 7 days
+        val cutoff = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000
         logDir.listFiles()?.forEach { file ->
             if (file.lastModified() < cutoff) file.delete()
         }
@@ -166,12 +161,10 @@ class CrashReporter private constructor(context: Context) {
                     for (file in files) {
                         val name = file.name
                         val dotIndex = name.lastIndexOf('.')
-                        val ext: String
+                        var ext = ""
                         if (dotIndex >= 0 && dotIndex < name.length - 1) {
-                            // Use Java String.toLowerCase directly to avoid Kotlin stdlib issues
-                            ext = (name.substring(dotIndex + 1) as java.lang.String).toLowerCase(Locale.US)
-                        } else {
-                            ext = ""
+                            val sub = name.substring(dotIndex + 1)
+                            ext = sub.toLowerCase(Locale.US)
                         }
                         if (ext == "log" || ext == "txt") {
                             zip.putNextEntry(java.util.zip.ZipEntry(file.name))
@@ -183,10 +176,6 @@ class CrashReporter private constructor(context: Context) {
             }
             return zipFile
         } catch (e: Exception) {
-            logError("CrashReporter", "Failed to export logs", e)
-            return null
-        }
-    }
             logError("CrashReporter", "Failed to export logs", e)
             return null
         }
