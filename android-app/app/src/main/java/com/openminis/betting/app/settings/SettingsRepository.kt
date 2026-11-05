@@ -261,8 +261,9 @@ class SettingsRepository(private val context: Context) {
             val type = com.google.gson.reflect.TypeToken.getParameterized(
                 Map::class.java, String::class.java, Any::class.java
             ).type
+            val rawMap = gson.fromJson(json, type)
             @Suppress("UNCHECKED_CAST")
-            val map = gson.fromJson(json, type) as Map<String, Any>? ?: return false
+            val map = rawMap as Map<String, Any>? ?: return false
             val editor = prefs.edit()
             for ((key, value) in map) {
                 if (key != "enc_key") {
