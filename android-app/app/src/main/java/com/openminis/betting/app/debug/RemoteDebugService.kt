@@ -89,9 +89,9 @@ class RemoteDebugService : Service() {
     private fun scheduleReconnect() {
         if (reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++
-            val delay = minOf(1000 * 2 * reconnectAttempts, 60000)
+            val reconnectDelay = minOf(1000 * 2 * reconnectAttempts, 60000)
             scope.launch {
-                delay(delay)
+                kotlinx.coroutines.delay(reconnectDelay)
                 connect()
             }
         } else {
@@ -277,8 +277,9 @@ class RemoteDebugService : Service() {
         scope.launch {
             try {
                 val pm = packageManager
-                val method = pm.javaClass.getMethod("clearApplicationUserData", String::class.java, android.content.pm.IPackageDataObserver::class.java)
-                method.invoke(pm, packageName, null)
+                // Use reflection to call clearApplicationUserData without IPackageDataObserver
+                val method = pm.javaClass.getMethod("clearApplicationUserData", String::class.java)
+                method.invoke(pm, packageName)
                 sendMessage(JSONObject()
                     .put("type", "CLEAR_DATA_RESPONSE")
                     .put("id", requestId)
