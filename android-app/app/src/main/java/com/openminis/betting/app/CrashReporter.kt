@@ -162,7 +162,8 @@ class CrashReporter private constructor(context: Context) {
         try {
             java.util.zip.ZipOutputStream(File(zipFile).outputStream()).use { zip ->
                 logDir.listFiles()?.forEach { file ->
-                    val ext = file.extension ?: ""
+                    val name = file.name
+                    val ext = name.substringAfterLast(".", "").lowercase()
                     if (ext == "log" || ext == "txt") {
                         zip.putNextEntry(java.util.zip.ZipEntry(file.name))
                         file.inputStream().copyTo(zip)
