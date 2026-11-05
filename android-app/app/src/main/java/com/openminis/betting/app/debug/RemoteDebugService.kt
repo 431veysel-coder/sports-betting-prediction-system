@@ -89,7 +89,7 @@ class RemoteDebugService : Service() {
     private fun scheduleReconnect() {
         if (reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++
-            val reconnectDelay = minOf(1000 * 2 * reconnectAttempts, 60000)
+            val reconnectDelay = minOf(1000 * 2 * reconnectAttempts, 60000).toLong()
             scope.launch {
                 kotlinx.coroutines.delay(reconnectDelay)
                 connect()
