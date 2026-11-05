@@ -123,10 +123,10 @@ class CrashReporter private constructor(context: Context) {
         }
     }
 
-    private fun saveCrashToFile(throwable: Throwable, type: String) {
+    private fun saveCrashToFile(throwable: Throwable, `type`: String) {
         try {
             val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
-            val crashFile = File(logDir, "crash_$type_$timestamp.txt")
+            val crashFile = File(logDir, "crash_${`type`}_$timestamp.txt")
             FileWriter(crashFile).use { writer ->
                 writer.write(buildLogEntry("CRASH", type, throwable.message ?: "Unknown", throwable))
                 writer.write("\n--- FULL THREAD DUMP ---\n")
@@ -162,7 +162,8 @@ class CrashReporter private constructor(context: Context) {
         try {
             java.util.zip.ZipOutputStream(File(zipFile).outputStream()).use { zip ->
                 logDir.listFiles()?.forEach { file ->
-                    if (file.extension == "log" || file.extension == "txt") {
+                    val ext = file.extension ?: ""
+                    if (ext == "log" || ext == "txt") {
                         zip.putNextEntry(java.util.zip.ZipEntry(file.name))
                         file.inputStream().copyTo(zip)
                         zip.closeEntry()
