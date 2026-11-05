@@ -8,6 +8,7 @@ import com.openminis.betting.app.model.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -24,7 +25,8 @@ import java.util.concurrent.TimeUnit
  */
 class CollectorOrchestrator(private val context: Context) {
 
-    private val scope = CoroutineScope(Dispatchers.IO + Job())
+    private val job = Job()
+    private val scope = CoroutineScope(Dispatchers.IO + job)
     private val repository = DataRepository.getInstance(context)
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     private val dateTimeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
@@ -134,7 +136,8 @@ class CollectorOrchestrator(private val context: Context) {
     private fun collectFromFootballData(): CollectorResult {
         checkRateLimit("football-data")
         
-        val apiKey = getEnvOrSetting("FOOTBALL_DATA_KEY") ?: return CollectorResult(0, 0, listOf("No API key"))
+        val apiKey = getEnvOrSetting("FOOTBALL_DATA_KEY") 
+            ?: return CollectorResult(success = false, matches = 0, odds = 0, errors = listOf("No API key"))
         val today = dateFormat.format(Date())
         val url = "https://api.football-data.org/v4/matches?dateFrom=$today&dateTo=$today"
         
@@ -161,7 +164,8 @@ class CollectorOrchestrator(private val context: Context) {
     private fun collectFromApiFootball(): CollectorResult {
         checkRateLimit("api-football")
         
-        val apiKey = getEnvOrSetting("API_FOOTBALL_KEY") ?: return CollectorResult(0, 0, listOf("No API key"))
+        val apiKey = getEnvOrSetting("API_FOOTBALL_KEY")
+            ?: return CollectorResult(success = false, matches = 0, odds = 0, errors = listOf("No API key"))
         val today = dateFormat.format(Date())
         val url = "https://api-football-v1.p.rapidapi.com/v3/fixtures?date=$today&timezone=Europe/Istanbul"
         
@@ -170,25 +174,25 @@ class CollectorOrchestrator(private val context: Context) {
     }
 
     // ============================================
-    // PARSERS
+    // PARSERS (TODO: Implement)
     // ============================================
 
     private fun parseOpenLigaDB(json: String?): CollectorResult {
         // Implementation for OpenLigaDB JSON parsing
         // Returns normalized Match + Odds objects
-        return CollectorResult(0, 0, listOf("Parser not implemented"))
+        return CollectorResult(success = true, matches = 0, odds = 0, errors = listOf("Parser not implemented"))
     }
 
     private fun parseFootballData(json: String?): CollectorResult {
-        return CollectorResult(0, 0, listOf("Parser not implemented"))
+        return CollectorResult(success = true, matches = 0, odds = 0, errors = listOf("Parser not implemented"))
     }
 
     private fun parseTheSportsDB(json: String?): CollectorResult {
-        return CollectorResult(0, 0, listOf("Parser not implemented"))
+        return CollectorResult(success = true, matches = 0, odds = 0, errors = listOf("Parser not implemented"))
     }
 
     private fun parseApiFootball(json: String?): CollectorResult {
-        return CollectorResult(0, 0, listOf("Parser not implemented"))
+        return CollectorResult(success = true, matches = 0, odds = 0, errors = listOf("Parser not implemented"))
     }
 
     // ============================================
@@ -246,7 +250,7 @@ class CollectorOrchestrator(private val context: Context) {
     }
 
     fun shutdown() {
-        scope.cancel()
+        job.cancel()
     }
 
     data class CollectorResult(
@@ -263,7 +267,8 @@ class CollectorOrchestrator(private val context: Context) {
  * xG/xGA Data Collector - Understat/FBref scraping
  */
 class XGCollector(private val context: Context) {
-    private val scope = CoroutineScope(Dispatchers.IO + Job())
+    private val job = Job()
+    private val scope = CoroutineScope(Dispatchers.IO + job)
     private val repository = DataRepository.getInstance(context)
 
     fun collectXGData(teamIds: List<String>) {
@@ -274,7 +279,7 @@ class XGCollector(private val context: Context) {
     }
 
     fun shutdown() {
-        scope.cancel()
+        job.cancel()
     }
 }
 
@@ -282,7 +287,8 @@ class XGCollector(private val context: Context) {
  * Injury/Suspension Collector - Transfermarkt/FlashScore
  */
 class InjuryCollector(private val context: Context) {
-    private val scope = CoroutineScope(Dispatchers.IO + Job())
+    private val job = Job()
+    private val scope = CoroutineScope(Dispatchers.IO + job)
     private val repository = DataRepository.getInstance(context)
 
     fun collectInjuries(leagueIds: List<String>) {
@@ -293,7 +299,7 @@ class InjuryCollector(private val context: Context) {
     }
 
     fun shutdown() {
-        scope.cancel()
+        job.cancel()
     }
 }
 
@@ -301,7 +307,8 @@ class InjuryCollector(private val context: Context) {
  * Weather Collector - OpenWeatherMap
  */
 class WeatherCollector(private val context: Context) {
-    private val scope = CoroutineScope(Dispatchers.IO + Job())
+    private val job = Job()
+    private val scope = CoroutineScope(Dispatchers.IO + job)
     private val repository = DataRepository.getInstance(context)
 
     fun collectWeather(matchIds: List<String>) {
@@ -312,6 +319,6 @@ class WeatherCollector(private val context: Context) {
     }
 
     fun shutdown() {
-        scope.cancel()
+        job.cancel()
     }
 }
