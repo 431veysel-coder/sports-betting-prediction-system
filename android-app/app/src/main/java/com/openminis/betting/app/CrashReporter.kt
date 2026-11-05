@@ -164,7 +164,12 @@ class CrashReporter private constructor(context: Context) {
                 logDir.listFiles()?.forEach { file ->
                     val name = file.name
                     val dotIndex = name.lastIndexOf('.')
-                    val ext = if (dotIndex >= 0) name.substring(dotIndex + 1).toLowerCase() else ""
+                    val ext: String
+                    if (dotIndex >= 0) {
+                        ext = name.substring(dotIndex + 1).toLowerCase(Locale.getDefault())
+                    } else {
+                        ext = ""
+                    }
                     if (ext == "log" || ext == "txt") {
                         zip.putNextEntry(java.util.zip.ZipEntry(file.name))
                         file.inputStream().copyTo(zip)
@@ -172,6 +177,12 @@ class CrashReporter private constructor(context: Context) {
                     }
                 }
             }
+            return zipFile
+        } catch (e: Exception) {
+            logError("CrashReporter", "Failed to export logs", e)
+            return null
+        }
+    }
             return zipFile
         } catch (e: Exception) {
             logError("CrashReporter", "Failed to export logs", e)
