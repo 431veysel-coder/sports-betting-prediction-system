@@ -168,7 +168,8 @@ class CrashReporter private constructor(context: Context) {
                         val dotIndex = name.lastIndexOf('.')
                         val ext: String
                         if (dotIndex >= 0 && dotIndex < name.length - 1) {
-                            ext = name.substring(dotIndex + 1).toLowerCase(Locale.US)
+                            // Use Java String.toLowerCase directly to avoid Kotlin stdlib issues
+                            ext = (name.substring(dotIndex + 1) as java.lang.String).toLowerCase(Locale.US)
                         } else {
                             ext = ""
                         }
@@ -182,6 +183,10 @@ class CrashReporter private constructor(context: Context) {
             }
             return zipFile
         } catch (e: Exception) {
+            logError("CrashReporter", "Failed to export logs", e)
+            return null
+        }
+    }
             logError("CrashReporter", "Failed to export logs", e)
             return null
         }
