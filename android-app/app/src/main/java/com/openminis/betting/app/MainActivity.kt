@@ -25,7 +25,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
     private val gson = Gson()
-    private val repository = DataRepository.getInstance(this)
+    private lateinit var repository: DataRepository
     private val job = Job()
     private val scope = CoroutineScope(Dispatchers.IO + job)
 
@@ -33,9 +33,12 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Initialize crash reporter FIRST
+        // Initialize crash reporter AFTER super.onCreate()
         CrashReporter.init(this)
         CrashReporter.getInstance().logInfo("MainActivity", "Application starting")
+
+        // Initialize repository AFTER super.onCreate()
+        repository = DataRepository.getInstance(this)
 
         try {
             setContentView(R.layout.activity_main)
