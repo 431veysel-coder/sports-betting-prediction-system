@@ -214,8 +214,10 @@ class CollectorOrchestrator(private val context: Context) {
         
         return try {
             val gson = com.google.gson.Gson()
-            val type = object : com.google.gson.reflect.TypeToken<List<OpenLigaDBMatch>>() {}.type
-            val matches = gson.fromJson(json, type) ?: emptyList()
+            val type = com.google.gson.reflect.TypeToken.getParameterized(
+                List::class.java, OpenLigaDBMatch::class.java
+            ).type
+            val matches = gson.fromJson<List<OpenLigaDBMatch>>(json, type) ?: emptyList()
             
             if (matches.isEmpty()) {
                 return CollectorResult(success = true, matches = 0, odds = 0)
@@ -258,7 +260,7 @@ class CollectorOrchestrator(private val context: Context) {
                 // Extract scores
                 var homeScore: Int? = null
                 var awayScore: Int? = null
-                val endResult = raw.MatchResults?.firstOrNull { it.ResultName == "Endergebnis" }
+                val endResult = raw.MatchResults?.firstOrNull { (it as OpenLigaDBResult).ResultName == "Endergebnis" }
                 if (endResult != null) {
                     homeScore = endResult.PointsTeam1
                     awayScore = endResult.PointsTeam2
