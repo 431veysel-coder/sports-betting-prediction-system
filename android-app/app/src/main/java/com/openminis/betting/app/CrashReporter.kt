@@ -164,7 +164,7 @@ class CrashReporter private constructor(context: Context) {
                         var ext = ""
                         if (dotIndex >= 0 && dotIndex < name.length - 1) {
                             val sub = name.substring(dotIndex + 1)
-                            ext = sub.toLowerCase(Locale.US)
+                            ext = sub.toLowerCase()
                         }
                         if (ext == "log" || ext == "txt") {
                             zip.putNextEntry(java.util.zip.ZipEntry(file.name))
