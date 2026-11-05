@@ -22,6 +22,15 @@ class DataRepository private constructor(context: Context) {
     private val gson = Gson()
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
+    // Expose database for debugging
+    fun getDatabase(): SQLiteDatabase? {
+        try {
+            return dbHelper.writableDatabase
+        } catch (e: Exception) {
+            return null
+        }
+    }
+
     companion object {
         @Suppress("UNUSED_PARAMETER")
         @Volatile private var instance: DataRepository? = null

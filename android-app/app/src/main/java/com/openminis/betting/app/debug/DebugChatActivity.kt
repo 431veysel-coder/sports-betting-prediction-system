@@ -1,5 +1,6 @@
 package com.openminis.betting.app.debug
 
+import android.content.Intent
 import android.os.Bundle
 import android.text.TextUtils
 import android.view.View
@@ -39,7 +40,6 @@ class DebugChatActivity : AppCompatActivity() {
             isBound = true
             updateConnectionStatus()
             
-            // Request initial logs
             debugService?.sendChatMessage("Debug chat connected from device")
         }
 
@@ -73,7 +73,6 @@ class DebugChatActivity : AppCompatActivity() {
         exportLogsButton.setOnClickListener { requestLogs() }
         getLogcatButton.setOnClickListener { requestLogcat() }
 
-        // Bind to RemoteDebugService
         val intent = Intent(this, RemoteDebugService::class.java)
         bindService(intent, serviceConnection, BIND_AUTO_CREATE)
         startService(intent)
@@ -91,15 +90,12 @@ class DebugChatActivity : AppCompatActivity() {
         val text = inputEditText.text.toString().trim()
         if (TextUtils.isEmpty(text)) return
 
-        // Add user message
         messageAdapter.addMessage(Message(text, true, System.currentTimeMillis()))
         inputEditText.text?.clear()
         scrollToBottom()
 
-        // Send to debug service
         debugService?.sendChatMessage(text)
 
-        // Simulate AI response (replace with real AI integration)
         scope.launch {
             kotlinx.coroutines.delay(500)
             messageAdapter.addMessage(Message("AI: Processing '$text'... (connect to real AI backend)", false, System.currentTimeMillis()))
@@ -115,7 +111,6 @@ class DebugChatActivity : AppCompatActivity() {
                 .put("id", id)
                 .put("lines", 200)
                 .toString())
-            // Listen for response would need a callback mechanism
             messageAdapter.addMessage(Message("📋 Requesting logs... (check crash logs viewer)", false, System.currentTimeMillis()))
             scrollToBottom()
         }

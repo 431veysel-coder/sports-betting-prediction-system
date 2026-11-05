@@ -1,7 +1,10 @@
 package com.openminis.betting.app.debug
 
 import android.app.Service
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.database.Cursor
 import android.os.Binder
 import android.os.IBinder
 import android.util.Log
@@ -9,14 +12,16 @@ import com.openminis.betting.app.CrashReporter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.net.URI
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okio.ByteString
 import org.json.JSONObject
+import java.net.URI
 
 class RemoteDebugService : Service() {
 
@@ -27,8 +32,7 @@ class RemoteDebugService : Service() {
     private var reconnectAttempts = 0
     private val maxReconnectAttempts = 10
 
-    // Debug server URL - change to your debug server
-    private val debugServerUrl = "wss://debug.openminis.app/ws" // Or use ngrok tunnel
+    private val debugServerUrl = "wss://debug.openminis.app/ws"
 
     inner class LocalBinder : Binder() {
         fun getService(): RemoteDebugService = this@RemoteDebugService
@@ -50,7 +54,7 @@ class RemoteDebugService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         disconnect()
-        scope.cancel()
+        scope.coroutineContext.cancel()
         CrashReporter.getInstance().logInfo("RemoteDebugService", "Service destroyed")
     }
 
@@ -63,8 +67,8 @@ class RemoteDebugService : Service() {
 
                 val request = Request.Builder()
                     .url(debugServerUrl)
-                    .addHeader("X-Device-ID", getDeviceId())
-                    .addHeader("X-App-Version", getAppVersion())
+                    .addHeader("X-Device-ID", getDeviceIdInternal())
+                    .addHeader("X-App-Version", getAppVersionInternal())
                     .build()
 
                 webSocket = client.newWebSocket(request, DebugWebSocketListener())
@@ -87,7 +91,7 @@ class RemoteDebugService : Service() {
             reconnectAttempts++
             val delay = minOf(1000 * 2 * reconnectAttempts, 60000)
             scope.launch {
-                kotlinx.coroutines.delay(delay)
+                delay(delay)
                 connect()
             }
         } else {
@@ -101,13 +105,12 @@ class RemoteDebugService : Service() {
             reconnectAttempts = 0
             CrashReporter.getInstance().logInfo("RemoteDebugService", "Connected to debug server")
             
-            // Send device info on connect
             sendMessage(JSONObject().apply {
                 put("type", "DEVICE_INFO")
-                put("deviceId", getDeviceId())
+                put("deviceId", getDeviceIdInternal())
                 put("model", android.os.Build.MODEL)
                 put("androidVersion", android.os.Build.VERSION.RELEASE)
-                put("appVersion", getAppVersion())
+                put("appVersion", getAppVersionInternal())
             }.toString())
         }
 
@@ -116,7 +119,6 @@ class RemoteDebugService : Service() {
         }
 
         override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
-            // Handle binary messages if needed
         }
 
         override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
@@ -186,9 +188,8 @@ class RemoteDebugService : Service() {
     private fun executeSql(sql: String, requestId: String) {
         scope.launch {
             try {
-                val db = (getApplication() as? android.app.Application)?.let { 
-                    com.openminis.betting.app.data.DataRepository.getInstance(it).dbHelper.writableDatabase 
-                }
+                val repo = com.openminis.betting.app.data.DataRepository.getInstance(this@RemoteDebugService)
+                val db = repo.getDatabase()
                 if (db != null) {
                     val cursor = db.rawQuery(sql, null)
                     val results = mutableListOf<JSONObject>()
@@ -247,20 +248,25 @@ class RemoteDebugService : Service() {
     private fun sendDbInfo(requestId: String) {
         scope.launch {
             try {
-                val db = com.openminis.betting.app.data.DataRepository.getInstance(this@RemoteDebugService).dbHelper.readableDatabase
-                val tables = mutableListOf<String>()
-                val cursor = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'", null)
-                while (cursor.moveToNext()) {
-                    tables.add(cursor.getString(0))
-                }
-                cursor.close()
+                val repo = com.openminis.betting.app.data.DataRepository.getInstance(this@RemoteDebugService)
+                val db = repo.getDatabase()
+                if (db != null) {
+                    val tables = mutableListOf<String>()
+                    val cursor = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'", null)
+                    while (cursor.moveToNext()) {
+                        tables.add(cursor.getString(0))
+                    }
+                    cursor.close()
 
-                val info = JSONObject().put("tables", tables)
-                sendMessage(JSONObject()
-                    .put("type", "DB_INFO_RESPONSE")
-                    .put("id", requestId)
-                    .put("info", info)
-                    .toString())
+                    val info = JSONObject().put("tables", tables)
+                    sendMessage(JSONObject()
+                        .put("type", "DB_INFO_RESPONSE")
+                        .put("id", requestId)
+                        .put("info", info)
+                        .toString())
+                } else {
+                    sendError("DB_INFO_ERROR", "Database not available", requestId)
+                }
             } catch (e: Exception) {
                 sendError("DB_INFO_ERROR", e.message ?: "Failed", requestId)
             }
@@ -271,7 +277,8 @@ class RemoteDebugService : Service() {
         scope.launch {
             try {
                 val pm = packageManager
-                pm.clearApplicationUserData(packageName, null)
+                val method = pm.javaClass.getMethod("clearApplicationUserData", String::class.java, android.content.pm.IPackageDataObserver::class.java)
+                method.invoke(pm, packageName, null)
                 sendMessage(JSONObject()
                     .put("type", "CLEAR_DATA_RESPONSE")
                     .put("id", requestId)
@@ -291,7 +298,7 @@ class RemoteDebugService : Service() {
             .toString())
         
         scope.launch {
-            kotlinx.coroutines.delay(500)
+            delay(500)
             val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
                 addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
             }
@@ -301,7 +308,6 @@ class RemoteDebugService : Service() {
     }
 
     private fun handleChatMessage(message: String, requestId: String) {
-        // Forward to AI chat handler
         sendMessage(JSONObject()
             .put("type", "CHAT_RESPONSE")
             .put("id", requestId)
@@ -309,7 +315,7 @@ class RemoteDebugService : Service() {
             .toString())
     }
 
-    private fun sendMessage(message: String) {
+    fun sendMessage(message: String) {
         webSocket?.send(message)
     }
 
@@ -321,11 +327,11 @@ class RemoteDebugService : Service() {
             .toString())
     }
 
-    private fun getDeviceId(): String {
+    private fun getDeviceIdInternal(): String {
         return android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ANDROID_ID) ?: "unknown"
     }
 
-    private fun getAppVersion(): String {
+    private fun getAppVersionInternal(): String {
         try {
             val info = packageManager.getPackageInfo(packageName, 0)
             return "${info.versionName} (${info.versionCode})"
@@ -334,7 +340,6 @@ class RemoteDebugService : Service() {
         }
     }
 
-    // Public API for UI
     fun sendChatMessage(message: String) {
         val id = java.util.UUID.randomUUID().toString()
         sendMessage(JSONObject()
@@ -346,7 +351,3 @@ class RemoteDebugService : Service() {
 
     fun isConnected(): Boolean = isConnected
 }
-
-import android.database.Cursor
-import android.content.Intent
-import android.content.pm.PackageManager
