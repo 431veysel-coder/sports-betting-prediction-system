@@ -163,8 +163,9 @@ class CrashReporter private constructor(context: Context) {
                         val dotIndex = name.lastIndexOf('.')
                         var ext = ""
                         if (dotIndex >= 0 && dotIndex < name.length - 1) {
-                            val sub: String = name.substring(dotIndex + 1)
-                            ext = sub.toLowerCase()
+                            val sub = name.substring(dotIndex + 1)
+                            // Use Java String.toLowerCase directly via static method reference
+                            ext = java.lang.String.valueOf(sub).toLowerCase()
                         }
                         if (ext == "log" || ext == "txt") {
                             zip.putNextEntry(java.util.zip.ZipEntry(file.name))
