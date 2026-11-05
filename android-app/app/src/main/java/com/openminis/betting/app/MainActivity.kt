@@ -124,6 +124,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
         return when (item.itemId) {
+            R.id.action_settings -> {
+                val intent = Intent(this, com.openminis.betting.app.settings.SettingsActivity::class.java)
+                startActivity(intent)
+                true
+            }
             R.id.action_debug_chat -> {
                 val intent = Intent(this, com.openminis.betting.app.debug.DebugChatActivity::class.java)
                 startActivity(intent)
