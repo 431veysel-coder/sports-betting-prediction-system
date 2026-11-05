@@ -17,6 +17,11 @@ import com.openminis.betting.app.CrashReporter
 import com.openminis.betting.app.R
 import com.openminis.betting.app.debug.DebugChatActivity
 import android.content.Intent
+import android.net.Uri
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class SettingsActivity : AppCompatActivity() {
 

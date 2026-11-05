@@ -26,42 +26,42 @@ class SettingsRepository(private val context: Context) {
         fun getInstance(context: Context): SettingsRepository = instance ?: synchronized(this) {
             instance ?: SettingsRepository(context.applicationContext).also { instance = it }
         }
-    }
 
-    // ============================================
-    // SETTINGS KEYS
-    // ============================================
-    
-    // API Keys
-    private const val KEY_API_FOOTBALL = "api_football_key"
-    private const val KEY_FOOTBALL_DATA = "football_data_key"
-    private const val KEY_OPEN_WEATHER = "open_weather_key"
-    private const val KEY_RAPIDAPI_HOST = "rapidapi_host"
-    
-    // Endpoints
-    private const val KEY_CUSTOM_ENDPOINT = "custom_api_endpoint"
-    private const val KEY_WEBHOOK_URL = "webhook_url"
-    
-    // Collector Settings
-    private const val KEY_SYNC_INTERVAL_MIN = "sync_interval_min"
-    private const val KEY_ENABLED_LEAGUES = "enabled_leagues"
-    private const val KEY_ENABLED_SOURCES = "enabled_sources"
-    
-    // Prediction Settings
-    private const val KEY_MIN_CONFIDENCE = "min_confidence"
-    private const val KEY_MIN_VALUE_SCORE = "min_value_score"
-    private const val KEY_KELLY_FRACTION = "kelly_fraction"
-    private const val KEY_MAX_STAKE_PERCENT = "max_stake_percent"
-    
-    // Notification Settings
-    private const val KEY_ENABLE_NOTIFICATIONS = "enable_notifications"
-    private const val KEY_VALUE_BET_THRESHOLD = "value_bet_threshold"
-    private const val KEY_TELEGRAM_BOT_TOKEN = "telegram_bot_token"
-    private const val KEY_TELEGRAM_CHAT_ID = "telegram_chat_id"
-    
-    // Debug Settings
-    private const val KEY_DEBUG_MODE = "debug_mode"
-    private const val KEY_LOG_LEVEL = "log_level"
+        // ============================================
+        // SETTINGS KEYS
+        // ============================================
+        
+        // API Keys
+        private const val KEY_API_FOOTBALL = "api_football_key"
+        private const val KEY_FOOTBALL_DATA = "football_data_key"
+        private const val KEY_OPEN_WEATHER = "open_weather_key"
+        private const val KEY_RAPIDAPI_HOST = "rapidapi_host"
+        
+        // Endpoints
+        private const val KEY_CUSTOM_ENDPOINT = "custom_api_endpoint"
+        private const val KEY_WEBHOOK_URL = "webhook_url"
+        
+        // Collector Settings
+        private const val KEY_SYNC_INTERVAL_MIN = "sync_interval_min"
+        private const val KEY_ENABLED_LEAGUES = "enabled_leagues"
+        private const val KEY_ENABLED_SOURCES = "enabled_sources"
+        
+        // Prediction Settings
+        private const val KEY_MIN_CONFIDENCE = "min_confidence"
+        private const val KEY_MIN_VALUE_SCORE = "min_value_score"
+        private const val KEY_KELLY_FRACTION = "kelly_fraction"
+        private const val KEY_MAX_STAKE_PERCENT = "max_stake_percent"
+        
+        // Notification Settings
+        private const val KEY_ENABLE_NOTIFICATIONS = "enable_notifications"
+        private const val KEY_VALUE_BET_THRESHOLD = "value_bet_threshold"
+        private const val KEY_TELEGRAM_BOT_TOKEN = "telegram_bot_token"
+        private const val KEY_TELEGRAM_CHAT_ID = "telegram_chat_id"
+        
+        // Debug Settings
+        private const val KEY_DEBUG_MODE = "debug_mode"
+        private const val KEY_LOG_LEVEL = "log_level"
+    }
 
     // ============================================
     // ENCRYPTION
