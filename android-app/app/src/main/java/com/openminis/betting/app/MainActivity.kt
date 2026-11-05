@@ -191,12 +191,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
-        fun exportLogs(): String {
-            val file = CrashReporter.getInstance().exportLogs()
-            return gson.toJson(mapOf("file" to file?.absolutePath, "success" to (file != null)))
-        }
-
-        @JavascriptInterface
         fun openLogViewer(): String {
             try {
                 val intent = android.content.Intent(context, LogViewerActivity::class.java)

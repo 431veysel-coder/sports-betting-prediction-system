@@ -38,17 +38,6 @@
             android:textColor="#ffffff" />
 
         <Button
-            android:id="@+id/exportButton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="4dp"
-            android:layout_marginEnd="4dp"
-            android:text="📤 Export"
-            android:backgroundTint="#8b5cf6"
-            android:textColor="#ffffff" />
-
-        <Button
             android:id="@+id/clearButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -63,7 +52,7 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_margin="16dp"
-        app:layout_constraintTop_toBottomOf="@id/toolbar"
+        app:layout_constraintTop_toBottomOf="@id/buttonBar"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
