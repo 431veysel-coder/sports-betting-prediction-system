@@ -119,24 +119,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.action_settings -> {
-                val intent = Intent(this, com.openminis.betting.app.settings.SettingsActivity::class.java)
-                startActivity(intent)
-                true
-            }
-            R.id.action_debug_chat -> {
-                val intent = Intent(this, com.openminis.betting.app.debug.DebugChatActivity::class.java)
-                startActivity(intent)
-                true
-            }
-            R.id.action_logs -> {
-                val intent = Intent(this, LogViewerActivity::class.java)
-                startActivity(intent)
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
-        }
+        return super.onOptionsItemSelected(item)
     }
 
     // ============================================
@@ -223,15 +206,7 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun openLogViewer(): String {
-            try {
-                val intent = android.content.Intent(context, LogViewerActivity::class.java)
-                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(intent)
-                return gson.toJson(mapOf("success" to true))
-            } catch (e: Exception) {
-                CrashReporter.getInstance().logError("WebAppInterface", "openLogViewer failed", e)
-                return gson.toJson(mapOf("success" to false, "error" to e.message))
-            }
+            return gson.toJson(mapOf("success" to false, "error" to "Not available"))
         }
     }
 

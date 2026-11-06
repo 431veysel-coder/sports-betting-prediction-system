@@ -78,7 +78,8 @@ data class Coupon(
     @SerializedName("total_legs") val totalLegs: Int,
     @SerializedName("won_legs") val wonLegs: Int = 0,
     @SerializedName("strategy_tag") val strategyTag: String = "BALANCED",
-    @SerializedName("created_at") val createdAt: String = ""
+    @SerializedName("created_at") val createdAt: String = "",
+    var legs: List<CouponLeg> = emptyList()
 )
 
 data class BankrollTransaction(
