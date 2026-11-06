@@ -29,7 +29,7 @@ jobs:
     name: Build Debug APK
     runs-on: ubuntu-latest
     if: github.event_name != 'release' && github.event_name != 'workflow_dispatch' || github.event.inputs.build_type == 'debug'
-    timeout-minutes: 20
+    timeout-minutes: 25
     
     steps:
       - name: Checkout Repository
@@ -45,7 +45,7 @@ jobs:
           test -f android-app/app/src/main/java/com/openminis/betting/app/network/ApiClient.kt && echo "✅ ApiClient.kt"
           test -f android-app/app/src/main/assets/index.html && echo "✅ index.html"
           test -f android-app/app/build.gradle && echo "✅ app/build.gradle"
-          test -f android-app/gradle/wrapper/gradle-wrapper.jar && echo "✅ gradle-wrapper.jar"
+          test -f android-app/gradle/wrapper/gradle-wrapper.jar && echo "✅ gradle-wrapper.jar (COMMITTED)"
           test -f android-app/gradle/wrapper/gradle-wrapper.properties && echo "✅ gradle-wrapper.properties"
       
       - name: Set up JDK 17
@@ -53,13 +53,8 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ env.JAVA_VERSION }}
-          cache: 'gradle'
-      
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.5'
-          cache-disabled: false
+          # Disable gradle cache - we use committed wrapper
+          cache: 'none'
       
       - name: Make gradlew executable
         run: chmod +x android-app/gradlew
@@ -71,7 +66,8 @@ jobs:
             --stacktrace \
             --no-configuration-cache \
             -Dorg.gradle.workers.max=2 \
-            -Pandroid.enableJetifier=true
+            -Pandroid.enableJetifier=true \
+            --offline
       
       - name: Verify APK
         run: |
@@ -120,9 +116,9 @@ jobs:
     name: Build Release AAB/APK
     runs-on: ubuntu-latest
     if: github.event_name == 'release' || github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'release'
-    timeout-minutes: 30
+    timeout-minutes: 35
     permissions:
-      contents: write  # For release upload
+      contents: write
     
     steps:
       - name: Checkout Repository
@@ -136,19 +132,14 @@ jobs:
           test -f android-app/app/src/main/java/com/openminis/betting/app/MainActivity.kt && echo "✅ MainActivity.kt"
           test -f android-app/app/src/main/java/com/openminis/betting/app/data/DataRepository.kt && echo "✅ DataRepository.kt"
           test -f android-app/app/src/main/java/com/openminis/betting/app/network/ApiClient.kt && echo "✅ ApiClient.kt"
+          test -f android-app/gradle/wrapper/gradle-wrapper.jar && echo "✅ gradle-wrapper.jar (COMMITTED)"
       
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: ${{ env.JAVA_VERSION }}
-          cache: 'gradle'
-      
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.5'
-          cache-disabled: false
+          cache: 'none'
       
       - name: Make gradlew executable
         run: chmod +x android-app/gradlew
@@ -170,7 +161,8 @@ jobs:
           ./gradlew :app:bundleRelease \
             --stacktrace \
             --no-configuration-cache \
-            -Dorg.gradle.workers.max=2
+            -Dorg.gradle.workers.max=2 \
+            --offline
       
       - name: Build Release APK
         working-directory: ./android-app
@@ -183,7 +175,8 @@ jobs:
           ./gradlew :app:assembleRelease \
             --stacktrace \
             --no-configuration-cache \
-            -Dorg.gradle.workers.max=2
+            -Dorg.gradle.workers.max=2 \
+            --offline
       
       - name: Verify Release Artifacts
         run: |
@@ -231,7 +224,7 @@ jobs:
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     
     steps:
       - name: Checkout Repository
@@ -242,13 +235,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ env.JAVA_VERSION }}
-          cache: 'gradle'
-      
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.5'
-          cache-disabled: false
+          cache: 'none'
       
       - name: Make gradlew executable
         run: chmod +x android-app/gradlew
@@ -259,7 +246,8 @@ jobs:
           ./gradlew :app:testDebugUnitTest \
             --stacktrace \
             --no-configuration-cache \
-            -Dorg.gradle.workers.max=2
+            -Dorg.gradle.workers.max=2 \
+            --offline
       
       - name: Upload Test Reports
         if: always()
@@ -313,7 +301,7 @@ jobs:
   lint:
     name: Code Quality & Lint
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     
     steps:
       - name: Checkout Repository
@@ -324,11 +312,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ env.JAVA_VERSION }}
-      
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.5'
+          cache: 'none'
       
       - name: Make gradlew executable
         run: chmod +x android-app/gradlew
@@ -339,7 +323,8 @@ jobs:
           ./gradlew :app:lintDebug \
             --stacktrace \
             --no-configuration-cache \
-            -Dorg.gradle.workers.max=2
+            -Dorg.gradle.workers.max=2 \
+            --offline
       
       - name: Upload Lint Report
         if: always()
