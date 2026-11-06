@@ -64,7 +64,8 @@ jobs:
             --stacktrace \
             --no-configuration-cache \
             -Dorg.gradle.workers.max=2 \
-            -Pandroid.enableJetifier=true
+            -Pandroid.enableJetifier=true \
+            --info
       
       - name: Verify APK
         run: |
@@ -157,7 +158,8 @@ jobs:
           ./gradlew :app:bundleRelease \
             --stacktrace \
             --no-configuration-cache \
-            -Dorg.gradle.workers.max=2
+            -Dorg.gradle.workers.max=2 \
+            --info
       
       - name: Build Release APK
         working-directory: ./android-app
@@ -170,7 +172,8 @@ jobs:
           ./gradlew :app:assembleRelease \
             --stacktrace \
             --no-configuration-cache \
-            -Dorg.gradle.workers.max=2
+            -Dorg.gradle.workers.max=2 \
+            --info
       
       - name: Verify Release Artifacts
         run: |
@@ -239,7 +242,8 @@ jobs:
           ./gradlew :app:testDebugUnitTest \
             --stacktrace \
             --no-configuration-cache \
-            -Dorg.gradle.workers.max=2
+            -Dorg.gradle.workers.max=2 \
+            --info
       
       - name: Upload Test Reports
         if: always()
@@ -314,7 +318,8 @@ jobs:
           ./gradlew :app:lintDebug \
             --stacktrace \
             --no-configuration-cache \
-            -Dorg.gradle.workers.max=2
+            -Dorg.gradle.workers.max=2 \
+            --info
       
       - name: Upload Lint Report
         if: always()
