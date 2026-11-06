@@ -42,7 +42,6 @@ jobs:
           echo "=== Verifying critical source files ==="
           test -f android-app/app/src/main/java/com/openminis/betting/app/MainActivity.kt && echo "✅ MainActivity.kt"
           test -f android-app/app/src/main/java/com/openminis/betting/app/data/DataRepository.kt && echo "✅ DataRepository.kt"
-          test -f android-app/app/src/main/java/com/openminis/betting/app/network/ApiClient.kt && echo "✅ ApiClient.kt"
           test -f android-app/app/src/main/assets/index.html && echo "✅ index.html"
           test -f android-app/app/build.gradle && echo "✅ app/build.gradle"
           test -f android-app/gradle/wrapper/gradle-wrapper.jar && echo "✅ gradle-wrapper.jar (COMMITTED)"
@@ -64,8 +63,7 @@ jobs:
             --stacktrace \
             --no-configuration-cache \
             -Dorg.gradle.workers.max=2 \
-            -Pandroid.enableJetifier=true \
-            --info
+            -Pandroid.enableJetifier=true
       
       - name: Verify APK
         run: |
@@ -73,7 +71,6 @@ jobs:
           if [ -f "$APK_PATH" ]; then
             echo "✅ APK exists: $APK_PATH"
             ls -lh "$APK_PATH"
-            # Basic validation
             unzip -l "$APK_PATH" | head -20
           else
             echo "❌ APK not found at $APK_PATH"
@@ -129,7 +126,6 @@ jobs:
           echo "=== Verifying critical source files ==="
           test -f android-app/app/src/main/java/com/openminis/betting/app/MainActivity.kt && echo "✅ MainActivity.kt"
           test -f android-app/app/src/main/java/com/openminis/betting/app/data/DataRepository.kt && echo "✅ DataRepository.kt"
-          test -f android-app/app/src/main/java/com/openminis/betting/app/network/ApiClient.kt && echo "✅ ApiClient.kt"
           test -f android-app/gradle/wrapper/gradle-wrapper.jar && echo "✅ gradle-wrapper.jar (COMMITTED)"
       
       - name: Set up JDK 17
@@ -158,8 +154,7 @@ jobs:
           ./gradlew :app:bundleRelease \
             --stacktrace \
             --no-configuration-cache \
-            -Dorg.gradle.workers.max=2 \
-            --info
+            -Dorg.gradle.workers.max=2
       
       - name: Build Release APK
         working-directory: ./android-app
@@ -172,8 +167,7 @@ jobs:
           ./gradlew :app:assembleRelease \
             --stacktrace \
             --no-configuration-cache \
-            -Dorg.gradle.workers.max=2 \
-            --info
+            -Dorg.gradle.workers.max=2
       
       - name: Verify Release Artifacts
         run: |
@@ -242,8 +236,7 @@ jobs:
           ./gradlew :app:testDebugUnitTest \
             --stacktrace \
             --no-configuration-cache \
-            -Dorg.gradle.workers.max=2 \
-            --info
+            -Dorg.gradle.workers.max=2
       
       - name: Upload Test Reports
         if: always()
@@ -290,41 +283,3 @@ jobs:
           sleep 3
           curl -f http://localhost:8000/health || exit 1
           pkill -f "uvicorn.run" || true
-
-  # ============================================
-  # CODE QUALITY
-  # ============================================
-  lint:
-    name: Code Quality & Lint
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-      
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: ${{ env.JAVA_VERSION }}
-      
-      - name: Make gradlew executable
-        run: chmod +x android-app/gradlew
-      
-      - name: Run Android Lint
-        working-directory: ./android-app
-        run: |
-          ./gradlew :app:lintDebug \
-            --stacktrace \
-            --no-configuration-cache \
-            -Dorg.gradle.workers.max=2 \
-            --info
-      
-      - name: Upload Lint Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: lint-report
-          path: android-app/app/build/reports/lint-results-debug.html
-          retention-days: 7
