@@ -259,6 +259,14 @@ class DataRepository private constructor(context: Context) {
                 total_staked REAL DEFAULT 0, total_won REAL DEFAULT 0, total_lost REAL DEFAULT 0,
                 total_profit REAL DEFAULT 0, roi REAL DEFAULT 0, max_drawdown REAL DEFAULT 0,
                 peak_balance REAL DEFAULT 1000, updated_at TEXT)""")
+            db.execSQL("""CREATE TABLE IF NOT EXISTS teams (
+                id TEXT PRIMARY KEY, name TEXT, short_name TEXT, logo_url TEXT,
+                country TEXT, founded INTEGER, venue_name TEXT, venue_city TEXT,
+                venue_capacity INTEGER, updated_at TEXT)""")
+            db.execSQL("""CREATE TABLE IF NOT EXISTS leagues (
+                id TEXT PRIMARY KEY, name TEXT, type TEXT, logo_url TEXT,
+                country TEXT, season TEXT, start_date TEXT, end_date TEXT,
+                updated_at TEXT)""")
             db.execSQL("""CREATE TABLE IF NOT EXISTS matches (
                 id TEXT PRIMARY KEY, sport_id TEXT, league_id TEXT, home_team_id TEXT, away_team_id TEXT,
                 match_date TEXT, kickoff_ts INTEGER, status TEXT, home_score INTEGER, away_score INTEGER,
