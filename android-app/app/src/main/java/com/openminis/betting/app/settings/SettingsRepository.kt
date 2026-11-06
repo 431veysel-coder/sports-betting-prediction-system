@@ -249,7 +249,7 @@ class SettingsRepository(private val context: Context) {
             if (key != "enc_key") {
                 map[key] = when (value) {
                     is String -> if (key.contains("key", true) || key.contains("token", true)) "[ENCRYPTED]" else value
-                    else -> value
+                    else -> value as Any
                 }
             }
         }
@@ -272,6 +272,20 @@ class SettingsRepository(private val context: Context) {
                         is Int -> editor.putInt(key, value)
                         is Long -> editor.putLong(key, value)
                         is Float -> editor.putFloat(key, value)
+                        is Boolean -> editor.putBoolean(key, value)
+                        is Double -> editor.putFloat(key, value.toFloat())
+                        is Set<*> -> editor.putStringSet(key, value as Set<String>)
+                        else -> editor.putString(key, gson.toJson(value))
+                    }
+                }
+            }
+            editor.apply()
+            true
+        } catch (e: Exception) {
+            CrashReporter.getInstance().logError("SettingsRepository", "Import failed", e)
+            false
+        }
+    }
                         is Boolean -> editor.putBoolean(key, value)
                         is Set<*> -> editor.putStringSet(key, value as Set<String>)
                         else -> editor.putString(key, gson.toJson(value))

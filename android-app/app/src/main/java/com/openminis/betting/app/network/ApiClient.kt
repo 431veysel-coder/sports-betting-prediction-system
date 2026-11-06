@@ -148,7 +148,7 @@ class ApiClient(private val context: Context) {
             val body = gson.toJson(mapOf("match_id" to matchId, "force_refresh" to forceRefresh))
             val request = Request.Builder()
                 .url("$baseUrl/api/predictions/generate")
-                .post(RequestBody.create(body, MediaType.get("application/json")))
+                .post(RequestBody.create(body, MediaType.parse("application/json")))
                 .build()
             client.newCall(request).await().parseJson(Prediction::class.java)
         } catch (e: Exception) {
@@ -161,7 +161,7 @@ class ApiClient(private val context: Context) {
             val body = gson.toJson(matchIds)
             val request = Request.Builder()
                 .url("$baseUrl/api/predictions/batch-generate")
-                .post(RequestBody.create(body, MediaType.get("application/json")))
+                .post(RequestBody.create(body, MediaType.parse("application/json")))
                 .build()
             client.newCall(request).await().parseJson(BatchPredictionResponse::class.java)
         } catch (e: Exception) {
@@ -206,7 +206,7 @@ class ApiClient(private val context: Context) {
             val body = gson.toJson(request)
             val req = Request.Builder()
                 .url("$baseUrl/api/generate-coupons")
-                .post(RequestBody.create(body, MediaType.get("application/json")))
+                .post(RequestBody.create(body, MediaType.parse("application/json")))
                 .build()
             client.newCall(req).await().parseJsonList(couponListType)
         } catch (e: Exception) {
@@ -219,7 +219,7 @@ class ApiClient(private val context: Context) {
             val body = gson.toJson(legResults)
             val req = Request.Builder()
                 .url("$baseUrl/api/coupons/$couponId/settle")
-                .post(RequestBody.create(body, MediaType.get("application/json")))
+                .post(RequestBody.create(body, MediaType.parse("application/json")))
                 .build()
             client.newCall(req).await().parseJson(SettleResponse::class.java)
         } catch (e: Exception) {
@@ -257,7 +257,7 @@ class ApiClient(private val context: Context) {
             val body = gson.toJson(mapOf("amount" to amount, "note" to note))
             val request = Request.Builder()
                 .url("$baseUrl/api/bankroll/deposit")
-                .post(RequestBody.create(body, MediaType.get("application/json")))
+                .post(RequestBody.create(body, MediaType.parse("application/json")))
                 .build()
             client.newCall(request).await().parseJson(Bankroll::class.java)
         } catch (e: Exception) {
@@ -270,7 +270,7 @@ class ApiClient(private val context: Context) {
             val body = gson.toJson(mapOf("amount" to amount, "note" to note))
             val request = Request.Builder()
                 .url("$baseUrl/api/bankroll/withdraw")
-                .post(RequestBody.create(body, MediaType.get("application/json")))
+                .post(RequestBody.create(body, MediaType.parse("application/json")))
                 .build()
             client.newCall(request).await().parseJson(Bankroll::class.java)
         } catch (e: Exception) {
@@ -283,7 +283,7 @@ class ApiClient(private val context: Context) {
             val body = gson.toJson(mapOf("initial_balance" to initialBalance))
             val request = Request.Builder()
                 .url("$baseUrl/api/bankroll/reset")
-                .post(RequestBody.create(body, MediaType.get("application/json")))
+                .post(RequestBody.create(body, MediaType.parse("application/json")))
                 .build()
             client.newCall(request).await().parseJson(Bankroll::class.java)
         } catch (e: Exception) {
@@ -312,7 +312,7 @@ class ApiClient(private val context: Context) {
             val body = gson.toJson(mapOf("value" to value))
             val request = Request.Builder()
                 .url("$baseUrl/api/settings/$key")
-                .put(RequestBody.create(body, MediaType.get("application/json")))
+                .put(RequestBody.create(body, MediaType.parse("application/json")))
                 .build()
             client.newCall(request).await().parseJson(ApiSettingUpdateResponse::class.java)
         } catch (e: Exception) {
@@ -331,7 +331,7 @@ class ApiClient(private val context: Context) {
             ))
             val request = Request.Builder()
                 .url("$baseUrl/api/sync")
-                .post(RequestBody.create(body, MediaType.get("application/json")))
+                .post(RequestBody.create(body, MediaType.parse("application/json")))
                 .build()
             client.newCall(request).await().parseJson(SyncResponse::class.java)
         } catch (e: Exception) {
@@ -372,7 +372,7 @@ class ApiClient(private val context: Context) {
 
     data class GenerateCouponsRequest(
         val stake_per_coupon: Double = 10.0,
-        val strategy: String = "BALANCEDED",
+        val strategy: String = "BALANCED",
         val max_coupons: Int = 20,
         val coupon_types: List<String>? = null
     )
@@ -447,44 +447,6 @@ class ApiClient(private val context: Context) {
         fun onFailure(action: (Exception) -> Unit): Result<T> { if (this is Failure) action(exception); return this }
     }
 
-    // Extension functions for Response parsing
-    private suspend fun Response.parseJson(clazz: Class<T>): Result<T> {
-        return try {
-            val body = this.body?.string() ?: throw IOException("Empty response")
-            if (!this.isSuccessful) {
-                val error = gson.fromJson(body, ApiError::class.java)
-                return Result.failure(ApiException(this.code, error.error ?: "HTTP ${this.code}"))
-            }
-            val parsed = gson.fromJson(body, clazz)
-            Result.success(parsed)
-        } catch (e: Exception) {
-            Result.failure(e)
-        } finally {
-            this.close()
-        }
-    }
-
-    private suspend fun Response.parseJsonList(type: Type): Result<List<T>> {
-        return try {
-            val body = this.body?.string() ?: throw IOException("Empty response")
-            if (!this.isSuccessful) {
-                val error = gson.fromJson(body, ApiError::class.java)
-                return Result.failure(ApiException(this.code, error.error ?: "HTTP ${this.code}"))
-            }
-            val parsed = gson.fromJson(body, type)
-            Result.success(parsed)
-        } catch (e: Exception) {
-            Result.failure(e)
-        } finally {
-            this.close()
-        }
-    }
-
-    data class ApiError(val error: String?, val status_code: Int?)
-    class ApiException(code: Int, message: String) : Exception("API Error $code: $message") {
-        val code: Int = code
-    }
-
     // Logging Interceptor
     private class LoggingInterceptor : Interceptor {
         override fun intercept(chain: Interceptor.Chain): Response {
@@ -495,6 +457,44 @@ class ApiClient(private val context: Context) {
             Log.d("ApiClient", "${request.method} ${request.url} -> ${response.code} (${duration}ms)")
             return response
         }
+    }
+}
+
+// ============================================
+// EXTENSION FUNCTIONS FOR RESPONSE PARSING
+// ============================================
+
+private suspend fun <T> Response.parseJson(clazz: Class<T>): ApiClient.Result<T> {
+    val gson = Gson()
+    return try {
+        val body = this.body?.string() ?: throw IOException("Empty response")
+        if (!this.isSuccessful) {
+            val error = gson.fromJson(body, ApiClient.ApiError::class.java)
+            return ApiClient.Result.failure(ApiClient.ApiException(this.code, error.error ?: "HTTP ${this.code}"))
+        }
+        val parsed = gson.fromJson(body, clazz)
+        ApiClient.Result.success(parsed)
+    } catch (e: Exception) {
+        ApiClient.Result.failure(e)
+    } finally {
+        this.close()
+    }
+}
+
+private suspend fun <T> Response.parseJsonList(type: Type): ApiClient.Result<List<T>> {
+    val gson = Gson()
+    return try {
+        val body = this.body?.string() ?: throw IOException("Empty response")
+        if (!this.isSuccessful) {
+            val error = gson.fromJson(body, ApiClient.ApiError::class.java)
+            return ApiClient.Result.failure(ApiClient.ApiException(this.code, error.error ?: "HTTP ${this.code}"))
+        }
+        val parsed = gson.fromJson(body, type)
+        ApiClient.Result.success(parsed)
+    } catch (e: Exception) {
+        ApiClient.Result.failure(e)
+    } finally {
+        this.close()
     }
 }
 
