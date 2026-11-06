@@ -53,8 +53,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ env.JAVA_VERSION }}
-          # Disable gradle cache - we use committed wrapper
-          cache: 'none'
+          # No cache - we use committed gradle wrapper with --offline
       
       - name: Make gradlew executable
         run: chmod +x android-app/gradlew
@@ -139,7 +138,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ env.JAVA_VERSION }}
-          cache: 'none'
+          # No cache - we use committed gradle wrapper with --offline
       
       - name: Make gradlew executable
         run: chmod +x android-app/gradlew
@@ -235,7 +234,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ env.JAVA_VERSION }}
-          cache: 'none'
+          # No cache - we use committed gradle wrapper with --offline
       
       - name: Make gradlew executable
         run: chmod +x android-app/gradlew
@@ -312,7 +311,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ env.JAVA_VERSION }}
-          cache: 'none'
+          # No cache - we use committed gradle wrapper with --offline
       
       - name: Make gradlew executable
         run: chmod +x android-app/gradlew
