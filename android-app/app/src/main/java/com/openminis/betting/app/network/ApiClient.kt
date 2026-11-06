@@ -15,7 +15,7 @@ import java.lang.reflect.Type
 import java.util.concurrent.TimeUnit
 
 /**
- * Minimal API Client for communicating with the Python FastAPI backend
+ * Minimal API Client - compiles but not fully functional
  */
 class ApiClient(private val context: Context) {
 

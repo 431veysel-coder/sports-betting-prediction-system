@@ -7,10 +7,8 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.util.Log
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.openminis.betting.app.CrashReporter
 import com.openminis.betting.app.model.*
-import java.lang.reflect.Type
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -39,9 +37,7 @@ class DataRepository private constructor(context: Context) {
         } catch (e: Exception) {
             CrashReporter.getInstance().logError("DataRepository", "getBankroll failed", e)
             Bankroll()
-        } finally {
-            cursor.close()
-        }
+        } finally { cursor.close() }
     }
 
     fun updateBankroll(bankroll: Bankroll) {
@@ -60,21 +56,6 @@ class DataRepository private constructor(context: Context) {
             put("updated_at", dateFormat.format(Date()))
         }
         db.update("bankroll", values, "id = 1", null)
-    }
-
-    fun addTransaction(txn: BankrollTransaction): Long {
-        val db = dbHelper.writableDatabase
-        val values = ContentValues().apply {
-            put("amount", txn.amount)
-            put("txn_type", txn.txnType)
-            put("reference_type", txn.referenceType)
-            put("reference_id", txn.referenceId)
-            put("balance_before", txn.balanceBefore)
-            put("balance_after", txn.balanceAfter)
-            put("note", txn.note)
-            put("timestamp", txn.timestamp)
-        }
-        return db.insert("bankroll_transactions", null, values)
     }
 
     fun getRecentTransactions(limit: Int): List<BankrollTransaction> {
@@ -123,12 +104,6 @@ class DataRepository private constructor(context: Context) {
             }
             db.setTransactionSuccessful()
         } finally { db.endTransaction() }
-    }
-
-    fun getMatchById(id: String): Match? {
-        val db = dbHelper.readableDatabase
-        val cursor = db.rawQuery("SELECT * FROM matches WHERE id = ?", arrayOf(id))
-        return try { if (cursor.moveToFirst()) cursorToMatch(cursor) else null } finally { cursor.close() }
     }
 
     // ============================================
@@ -198,9 +173,9 @@ class DataRepository private constructor(context: Context) {
         } finally { db.endTransaction() }
     }
 
-    fun getAllPredictions(): List<Prediction> {
+    fun getPredictions(minScore: Double = 0.0): List<Prediction> {
         val db = dbHelper.readableDatabase
-        val cursor = db.rawQuery("SELECT * FROM predictions ORDER BY final_score DESC", null)
+        val cursor = db.rawQuery("SELECT * FROM predictions WHERE final_score >= ? ORDER BY final_score DESC", arrayOf(minScore.toString()))
         return try { cursorToPredictions(cursor) } finally { cursor.close() }
     }
 
@@ -230,11 +205,10 @@ class DataRepository private constructor(context: Context) {
         } finally { db.endTransaction() }
     }
 
-    fun getAllCoupons(): List<Coupon> {
+    fun getCoupons(): List<Coupon> {
         val db = dbHelper.readableDatabase
         val cursor = db.rawQuery("SELECT * FROM coupons ORDER BY created_at DESC", null)
         val coupons = try { cursorToCoupons(cursor) } finally { cursor.close() }
-        // Load legs for each coupon
         for (coupon in coupons) {
             val legCursor = db.rawQuery("SELECT * FROM coupon_legs WHERE coupon_id = ? ORDER BY leg_order", arrayOf(coupon.id))
             try { coupon.legs = cursorToCouponLegs(legCursor) } finally { legCursor.close() }
@@ -243,7 +217,7 @@ class DataRepository private constructor(context: Context) {
     }
 
     // ============================================
-    // SYNC & GENERATE OPERATIONS (Legacy - for CollectorOrchestrator)
+    // LEGACY SYNC (for CollectorOrchestrator)
     // ============================================
     data class SyncResult(
         val success: Boolean = true,
@@ -261,126 +235,8 @@ class DataRepository private constructor(context: Context) {
         val error: String? = null
     )
 
-    fun syncLiveData(): SyncResult {
-        return try {
-            val newMatches = generateTestMatches()
-            val newOdds = generateTestOdds(newMatches)
-            upsertMatches(newMatches)
-            upsertOdds(newOdds.flatten())
-            val predictions = generatePredictions(newMatches)
-            upsertPredictions(predictions)
-            SyncResult(success = true, count = newMatches.size, matches = newMatches, predictions = predictions)
-        } catch (e: Exception) {
-            Log.e("DataRepository", "Sync error", e)
-            SyncResult(success = false, error = e.message)
-        }
-    }
-
-    fun generateDailyCoupons(): GenerateResult {
-        val db = dbHelper.writableDatabase
-        return try {
-            val bankroll = getBankroll()
-            val predictions = getAllPredictions()
-            val validPreds = predictions.filter { it.finalScore > 60 && it.valueScore > 1.02 && it.confidence > 0.55 }
-                .sortedByDescending { it.finalScore }
-            if (validPreds.isEmpty()) {
-                return GenerateResult(success = false, error = "No valid predictions found")
-            }
-            val stakePerCoupon = 10.0
-            val newCoupons = mutableListOf<Coupon>()
-            val now = dateFormat.format(Date())
-            for (i in 0 until minOf(20, validPreds.size)) {
-                val p = validPreds[i]
-                val odds = getLatestOdds(p.matchId) ?: continue
-                val oddVal = when (p.predictedOutcome) {
-                    "HOME_WIN" -> odds.homeWin
-                    "AWAY_WIN" -> odds.awayWin
-                    "DRAW" -> odds.draw
-                    else -> odds.homeWin
-                }
-                if (oddVal <= 1.0) continue
-                val coupon = Coupon(
-                    id = "SNG_${System.currentTimeMillis()}_$i",
-                    couponType = "SINGLE", totalOdds = (oddVal * 100).roundToLong() / 100.0,
-                    stake = stakePerCoupon,
-                    potentialReturn = (stakePerCoupon * oddVal * 100).roundToLong() / 100.0,
-                    totalLegs = 1, createdAt = now
-                )
-                newCoupons.add(coupon)
-            }
-            for (i in 0 until minOf(5, validPreds.size / 4)) {
-                val selected = validPreds.subList(i * 4, minOf((i + 1) * 4, validPreds.size))
-                var totalOdds = 1.0
-                for (p in selected) {
-                    val odds = getLatestOdds(p.matchId) ?: continue
-                    val oddVal = when (p.predictedOutcome) {
-                        "HOME_WIN" -> odds.homeWin
-                        "AWAY_WIN" -> odds.awayWin
-                        else -> odds.draw
-                    }
-                    totalOdds *= oddVal
-                }
-                val coupon = Coupon(
-                    id = "ACC_${System.currentTimeMillis()}_$i",
-                    couponType = "ACCUMULATOR_4", totalOdds = (totalOdds * 100).roundToLong() / 100.0,
-                    stake = stakePerCoupon,
-                    potentialReturn = (stakePerCoupon * totalOdds * 100).roundToLong() / 100.0,
-                    totalLegs = selected.size, createdAt = now
-                )
-                newCoupons.add(coupon)
-            }
-            upsertCoupons(newCoupons)
-            GenerateResult(success = true, count = newCoupons.size, coupons = newCoupons, bankroll = bankroll)
-        } catch (e: Exception) {
-            GenerateResult(success = false, error = e.message)
-        }
-    }
-
-    // ============================================
-    // TEST DATA GENERATORS
-    // ============================================
-    private fun generateTestMatches(): List<Match> {
-        val leagues = listOf("BL1", "PL", "PD", "SA", "FL1")
-        val teams = listOf("Bayern Munich", "Borussia Dortmund", "Real Madrid", "Barcelona", 
-                          "Manchester City", "Liverpool", "Juventus", "AC Milan", "PSG", "Lyon")
-        val matches = mutableListOf<Match>()
-        val now = System.currentTimeMillis()
-        for (i in 0..10) {
-            val home = teams[i % teams.size]
-            val away = teams[(i + 5) % teams.size]
-            matches.add(Match(
-                id = "match_$i", sportId = "football", leagueId = leagues[i % leagues.size],
-                homeTeamId = "team_${i}", awayTeamId = "team_${i+5}",
-                homeTeam = home, awayTeam = away, league = leagues[i % leagues.size],
-                matchDate = dateFormat.format(Date(now + (i * 86400000))),
-                kickoffTs = (now / 1000) + (i * 86400), status = "SCHEDULED"
-            ))
-        }
-        return matches
-    }
-
-    private fun generateTestOdds(matches: List<Match>): List<List<Odds>> {
-        return matches.map { match ->
-            listOf(Odds(
-                matchId = match.id, bookmaker = "TestBook", marketType = "1X2",
-                homeWin = 2.0, draw = 3.4, awayWin = 3.5,
-                over25 = 1.75, under25 = 2.05, bttsYes = 1.85, bttsNo = 1.95,
-                timestamp = dateFormat.format(Date()), isClosing = 0
-            ))
-        }
-    }
-
-    private fun generatePredictions(matches: List<Match>): List<Prediction> {
-        return matches.map { match ->
-            Prediction(
-                matchId = match.id, modelId = "ensemble_v1", predictedOutcome = "HOME_WIN",
-                marketType = "1X2", successProb = 0.65, confidence = 0.75, honesty = 0.85,
-                reliability = 0.80, valueScore = 1.15, riskScore = 0.25, qualityScore = 0.90,
-                consistency = 0.70, marketEfficiency = 0.85, scenarioScore = 0.75,
-                finalScore = 78.5, kellyFraction = 0.032, recommendedStake = 32.0
-            )
-        }
-    }
+    fun syncLiveData(): SyncResult = SyncResult(success = true, count = 0)
+    fun generateDailyCoupons(): GenerateResult = GenerateResult(success = false, error = "Not implemented")
 
     // ============================================
     // DATABASE HELPER
