@@ -122,7 +122,7 @@ class SettingsRepository(private val context: Context) {
             if (key != "enc_key") {
                 map[key] = when {
                     key.contains("key", true) || key.contains("token", true) -> "[ENCRYPTED]"
-                    else -> value
+                    else -> value as Any
                 }
             }
         }
