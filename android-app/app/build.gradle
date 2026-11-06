@@ -31,7 +31,7 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            // Signing config applied conditionally below
         }
     }
 
@@ -54,16 +54,24 @@ android {
         }
     }
 
-    // Signing configs (loaded from local.properties or env)
-    signingConfigs {
-        release {
-            if (project.hasProperty("KEYSTORE_PATH") && project.hasProperty("KEYSTORE_PASSWORD") 
-                && project.hasProperty("KEY_ALIAS") && project.hasProperty("KEY_PASSWORD")) {
+    // Conditional signing config - only configure if all properties present
+    // This avoids "unknown property 'release'" error when env vars not set
+    def hasReleaseSigning = project.hasProperty("KEYSTORE_PATH") 
+        && project.hasProperty("KEYSTORE_PASSWORD") 
+        && project.hasProperty("KEY_ALIAS") 
+        && project.hasProperty("KEY_PASSWORD")
+    
+    if (hasReleaseSigning) {
+        signingConfigs {
+            release {
                 storeFile file(KEYSTORE_PATH)
                 storePassword KEYSTORE_PASSWORD
                 keyAlias KEY_ALIAS
                 keyPassword KEY_PASSWORD
             }
+        }
+        buildTypes.release {
+            signingConfig signingConfigs.release
         }
     }
 }
