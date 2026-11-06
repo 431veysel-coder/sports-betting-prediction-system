@@ -16,7 +16,7 @@ from database.db import get_db
 def poisson_pmf(k, lam):
     """Poisson probability mass function"""
     if lam <= 0:
-        return 0.0 if k == 0 else 0.0
+        return 1.0 if k == 0 else 0.0
     return math.exp(-lam) * (lam ** k) / math.factorial(k)
 
 def poisson_cdf(k, lam):
@@ -57,9 +57,13 @@ def calculate_match_probabilities(home_exp, away_exp, max_goals=10, rho=0.13):
     # Renormalize
     score_matrix = score_matrix / score_matrix.sum()
     
-    home_win = np.sum(np.triu(score_matrix, 1))
+    # score_matrix[h, a] = P(home=h, away=a)
+    # Home wins: h > a -> lower triangle (row > col)
+    # Away wins: a > h -> upper triangle (col > row)
+    # Draw: h == a -> diagonal
+    home_win = np.sum(np.tril(score_matrix, -1))
     draw = np.sum(np.diag(score_matrix))
-    away_win = np.sum(np.tril(score_matrix, -1))
+    away_win = np.sum(np.triu(score_matrix, 1))
     
     return home_win, draw, away_win, score_matrix
 
@@ -82,7 +86,7 @@ def calculate_btts_probabilities(score_matrix):
 # ============================================
 
 def expected_score(elo_a, elo_b, home_advantage=100):
-    """Expected score for team A vs team B"""
+    """Expected score for team A (home) vs team B (away)"""
     return 1 / (1 + 10 ** ((elo_b - elo_a - home_advantage) / 400))
 
 def update_elo(elo_a, elo_b, score_a, score_b, k=20, home_advantage=100):
@@ -117,7 +121,7 @@ def elo_to_goal_expectancy(elo_diff, avg_goals=2.7):
 # KELLY CRITERION & STAKING
 # ============================================
 
-def kelly_criterion(prob, odds, fraction=0.25):
+def kelly_criterion(prob, odds, fraction=1.0, max_fraction=None):
     """
     Calculate Kelly stake fraction
     f* = (p * b - q) / b where b = odds - 1, q = 1 - p
@@ -129,7 +133,10 @@ def kelly_criterion(prob, odds, fraction=0.25):
     kelly = (prob * b - q) / b
     if kelly <= 0:
         return 0.0
-    return min(kelly * fraction, 0.05)  # Cap at 5% of bankroll
+    kelly = kelly * fraction
+    if max_fraction is not None:
+        kelly = min(kelly, max_fraction)
+    return kelly
 
 def fractional_kelly_stake(bankroll, prob, odds, fraction=0.25, max_pct=0.05):
     """Calculate actual stake amount"""

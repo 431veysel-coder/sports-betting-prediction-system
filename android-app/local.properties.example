@@ -1,0 +1,16 @@
+# Local properties - DO NOT COMMIT TO VERSION CONTROL
+# Copy this file to local.properties and fill in your values
+
+# Android SDK location (auto-detected if not set)
+# sdk.dir=/path/to/android/sdk
+
+# Release signing configuration
+# KEYSTORE_PATH=/path/to/release.keystore
+# KEYSTORE_PASSWORD=your_keystore_password
+# KEY_ALIAS=your_key_alias
+# KEY_PASSWORD=your_key_password
+
+# API Configuration (optional - can be set in app settings)
+# API_BASE_URL=http://10.0.2.2:8000
+# API_FOOTBALL_KEY=your_api_football_key
+# FOOTBALL_DATA_KEY=your_football_data_key

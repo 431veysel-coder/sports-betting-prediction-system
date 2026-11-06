@@ -1,66 +1,116 @@
 #!/bin/bash
-# Gradle wrapper script - downloads wrapper jar if needed
+#
+# Gradle startup script for UN*X
+#
+# This is a simplified version of the standard Gradle wrapper script
+# that works around grsecurity/PaX restrictions by using the wrapper JAR directly.
 
 set -e
 
-GRADLE_VERSION="8.5"
-WRAPPER_JAR="gradle/wrapper/gradle-wrapper.jar"
-WRAPPER_URL="https://github.com/gradle/gradle/raw/v${GRADLE_VERSION}/gradle/wrapper/gradle-wrapper.jar"
+# Resolve links: $0 may be a link
+PRG="$0"
+while [ -h "$PRG" ] ; do
+    ls=`ls -ld "$PRG"`
+    link=`expr "$ls" : '.*-> \(.*\)$'`
+    if expr "$link" : '/.*' > /dev/null; then
+        PRG="$link"
+    else
+        PRG=`dirname "$PRG"`/"$link"
+    fi
+done
+SAVED="`pwd`"
+cd "`dirname \"$PRG\"`/" >/dev/null
+APP_HOME="`pwd -P`"
+cd "$SAVED" >/dev/null
 
-# Create wrapper directory
-mkdir -p gradle/wrapper
+APP_NAME="Gradle"
+APP_BASE_NAME=`basename "$0"`
 
-# Download wrapper jar if not exists
-if [ ! -f "$WRAPPER_JAR" ]; then
-    echo "Downloading Gradle wrapper ${GRADLE_VERSION}..."
-    curl -L -o "$WRAPPER_JAR" "$WRAPPER_URL" || {
-        echo "Failed to download from GitHub, trying Gradle services..."
-        curl -L -o "$WRAPPER_JAR" "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" || true
-    }
-fi
+# Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
+DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
 
-# If we still don't have the jar, try to create a minimal one
-if [ ! -f "$WRAPPER_JAR" ]; then
-    echo "Creating minimal wrapper jar..."
-    # Create a minimal wrapper that delegates to system gradle with version flag
-    cat > /tmp/Wrapper.java << 'JAVAEOF'
-import java.io.*;
-import java.net.*;
-import java.nio.file.*;
-import java.util.*;
+# Use the maximum available, or set MAX_FD != -1 to use that value.
+MAX_FD="maximum"
 
-public class Wrapper {
-    public static void main(String[] args) throws Exception {
-        String gradleVersion = "8.5";
-        String gradleHome = System.getenv("GRADLE_HOME");
-        if (gradleHome == null) {
-            // Try to find gradle in PATH
-            Process p = new ProcessBuilder("which", "gradle").start();
-            p.waitFor();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            String path = reader.readLine();
-            if (path != null) {
-                gradleHome = new File(path).getParentFile().getParent();
-            }
-        }
-        if (gradleHome == null) {
-            System.err.println("Gradle not found. Please install Gradle " + gradleVersion);
-            System.exit(1);
-        }
-        List<String> cmd = new ArrayList<>();
-        cmd.add(new File(gradleHome, "bin/gradle").getAbsolutePath());
-        for (String arg : args) cmd.add(arg);
-        ProcessBuilder pb = new ProcessBuilder(cmd);
-        pb.inheritIO();
-        Process p = pb.start();
-        System.exit(p.waitFor());
-    }
+warn () {
+    echo "$*"
 }
-JAVAEOF
-        # This is too complex for a shell script, let's just use system gradle
-        echo "Using system gradle with version check..."
-    }
+
+die () {
+    echo
+    echo "$*"
+    echo
+    exit 1
+}
+
+# OS specific support (must be 'true' or 'false').
+cygwin=false
+msys=false
+darwin=false
+nonstop=false
+case "`uname`" in
+  CYGWIN* )
+    cygwin=true
+    ;;
+  Darwin* )
+    darwin=true
+    ;;
+  MINGW* )
+    msys=true
+    ;;
+  NONSTOP* )
+    nonstop=true
+    ;;
+esac
+
+CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
+
+# Determine the Java command to use to start the JVM.
+if [ -n "$JAVA_HOME" ] ; then
+    if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
+        JAVACMD="$JAVA_HOME/jre/sh/java"
+    else
+        JAVACMD="$JAVA_HOME/bin/java"
+    fi
+    if [ ! -x "$JAVACMD" ] ; then
+        die "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
+Please set the JAVA_HOME variable in your environment to match the
+location of your Java installation."
+    fi
+else
+    JAVACMD="java"
+    which java >/dev/null 2>&1 || die "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
+Please set the JAVA_HOME variable in your environment to match the
+location of your Java installation."
 fi
 
-# Execute gradle
-exec java -jar "$WRAPPER_JAR" "$@"
+# Increase the maximum file descriptors if we can.
+if [ "$cygwin" = "false" -a "$darwin" = "false" -a "$nonstop" = "false" ] ; then
+    MAX_FD_LIMIT=`ulimit -H -n`
+    if [ $? -eq 0 ] ; then
+        if [ "$MAX_FD" = "maximum" -o "$MAX_FD" = "max" ] ; then
+            MAX_FD="$MAX_FD_LIMIT"
+        fi
+        ulimit -n $MAX_FD
+        if [ $? -ne 0 ] ; then
+            warn "Could not set maximum file descriptor limit: $MAX_FD"
+        fi
+    else
+        warn "Could not query maximum file descriptor limit: $MAX_FD_LIMIT"
+    fi
+fi
+
+# For Darwin, add options to specify how the application appears in the dock
+if $darwin; then
+    GRADLE_OPTS="$GRADLE_OPTS \"-Xdock:name=$APP_NAME\" \"-Xdock:icon=$APP_HOME/media/gradle.icns\""
+fi
+
+# Split up the JVM_OPTS And GRADLE_OPTS values into an array
+JVM_OPTS=()
+eval set -- $DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS
+for arg in "$@" ; do
+    JVM_OPTS=("${JVM_OPTS[@]}" "$arg")
+done
+
+# Execute Gradle
+exec "$JAVACMD" "${JVM_OPTS[@]}" -classpath "$CLASSPATH" org.gradle.wrapper.GradleWrapperMain "$@"

@@ -6,13 +6,15 @@
     <title>Sports Betting Intelligence OS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root { --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #f1f5f9; --muted: #94a3b8; --emerald: #34d399; --rose: #f87171; --indigo: #818cf8; --amber: #fbbf24; }
+        :root { --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #f1f5f9; --muted: #94a3b8; --emerald: #34d399; --rose: #f87171; --indigo: #818cf8; --amber: #fbbf24; --violet: #a78bfa; --cyan: #22d3ee; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         .btn { @apply px-4 py-2.5 rounded-xl font-semibold text-sm transition-all duration-150 active:scale-[0.98]; }
         .btn-primary { @apply bg-emerald-600 text-white; } .btn-primary:active { background: #059669; }
         .btn-secondary { @apply bg-indigo-600 text-white; } .btn-secondary:active { background: #4f46e5; }
+        .btn-violet { @apply bg-violet-600 text-white; } .btn-violet:active { background: #7c3aed; }
         .btn-ghost { @apply bg-slate-800 text-slate-300 border border-slate-700; }
+        .btn-danger { @apply bg-rose-600 text-white; } .btn-danger:active { background: #dc2626; }
         .card { @apply bg-slate-800/80 border border-slate-700/50 rounded-2xl p-5 backdrop-blur-sm; }
         .stat-value { @apply text-3xl font-extrabold tracking-tight; }
         .stat-label { @apply text-xs font-medium text-slate-400 uppercase tracking-wider; }
@@ -20,6 +22,7 @@
         .badge-pending { @apply bg-amber-500/20 text-amber-400; }
         .badge-won { @apply bg-emerald-500/20 text-emerald-400; }
         .badge-lost { @apply bg-rose-500/20 text-rose-400; }
+        .badge-partial { @apply bg-indigo-500/20 text-indigo-400; }
         .table-container { @apply overflow-x-auto rounded-xl border border-slate-700/50; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
         th { @apply bg-slate-800/50 text-slate-400 text-xs font-semibold uppercase tracking-wider px-4 py-3 text-left; }
@@ -33,9 +36,20 @@
         .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
         .toast.success { border-color: #34d399; }
         .toast.error { border-color: #f87171; }
+        .toast.warning { border-color: #fbbf24; }
         .empty-state { text-align: center; padding: 40px 20px; color: #64748b; }
         .empty-state svg { width: 64px; height: 64px; margin-bottom: 16px; opacity: 0.5; }
         .pull-to-refresh { height: 60px; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 12px; }
+        .tab-btn { @apply text-slate-400; }
+        .tab-btn.active { @apply bg-emerald-500/20 text-emerald-400; }
+        .input-field { @apply w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500; }
+        .select-field { @apply w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500; }
+        .coupon-card { @apply bg-slate-800/50 border border-slate-700/50 rounded-xl p-4; }
+        .coupon-leg { @apply text-xs text-slate-400 px-2 py-1 bg-slate-900/50 rounded; }
+        .metric-bar { height: 6px; border-radius: 3px; background: linear-gradient(90deg, #34d399, #818cf8); }
+        .metric-bar-bg { height: 6px; border-radius: 3px; background: #334155; overflow: hidden; }
+        .skeleton { background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
@@ -116,7 +130,7 @@
 
         <!-- Tabs -->
         <div class="flex gap-1 mb-4 bg-slate-900/50 rounded-xl p-1 border border-slate-700/50" role="tablist">
-            <button id="tabPredictions" class="tab-btn flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all" role="tab" aria-selected="true">🔥 Tahminler</button>
+            <button id="tabPredictions" class="tab-btn flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all active" role="tab" aria-selected="true">🔥 Tahminler</button>
             <button id="tabCoupons" class="tab-btn flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all" role="tab" aria-selected="false">🎟️ Kuponlar</button>
             <button id="tabBankroll" class="tab-btn flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all" role="tab" aria-selected="false">💰 Kasa</button>
         </div>
@@ -137,6 +151,7 @@
                                 <th class="hidden md:table-cell">Tarih</th>
                                 <th>Tahmin</th>
                                 <th>Skor</th>
+                                <th class="hidden lg:table-cell">10 Metrik</th>
                             </tr>
                         </thead>
                         <tbody id="predictionsBody"></tbody>
@@ -156,19 +171,8 @@
                     <h2 class="text-base font-bold">Otonom Üretilen Kuponlar</h2>
                     <span id="couponCountBadge" class="badge badge-pending">0 kupon</span>
                 </div>
-                <div class="table-container" id="couponsTable">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Tür</th>
-                                <th>Oran</th>
-                                <th>Tutar</th>
-                                <th>Durum</th>
-                            </tr>
-                        </thead>
-                        <tbody id="couponsBody"></tbody>
-                    </table>
+                <div id="couponsList" class="space-y-3" style="max-height: 500px; overflow-y: auto;">
+                    <!-- Coupons rendered here -->
                 </div>
                 <div id="couponsEmpty" class="empty-state hidden">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
@@ -207,6 +211,12 @@
                 </div>
                 <div id="transactionsEmpty" class="empty-state hidden"><p class="text-sm">Henüz işlem yok</p></div>
             </div>
+            
+            <!-- Bankroll Actions -->
+            <div class="grid grid-cols-2 gap-3 mt-4">
+                <button id="depositBtn" class="btn btn-primary">💰 Para Yatır</button>
+                <button id="withdrawBtn" class="btn btn-secondary">💸 Para Çek</button>
+            </div>
         </div>
     </main>
 
@@ -215,6 +225,57 @@
         <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
     </button>
 
+    <!-- Generate Coupons Modal -->
+    <div id="generateModal" class="fixed inset-0 bg-black/70 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md">
+            <h3 class="text-lg font-bold mb-4">⚡ Kupon Üret</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Kupon Başına Bahis (TL)</label>
+                    <input type="number" id="genStake" value="10" min="1" max="1000" step="1" class="input-field">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Strateji</label>
+                    <select id="genStrategy" class="select-field">
+                        <option value="BALANCED">Dengeli</option>
+                        <option value="VALUE">Değer Odaklı</option>
+                        <option value="HIGH_CONFIDENCE">Yüksek Güven</option>
+                        <option value="LONGSHOT">Sürpriz/Longshot</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Maks Kupon Sayısı</label>
+                    <input type="number" id="genMaxCoupons" value="20" min="1" max="100" class="input-field">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button id="genCancel" class="flex-1 btn btn-ghost">İptal</button>
+                    <button id="genConfirm" class="flex-1 btn btn-secondary">Üret</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deposit/Withdraw Modal -->
+    <div id="bankrollModal" class="fixed inset-0 bg-black/70 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md">
+            <h3 id="brModalTitle" class="text-lg font-bold mb-4">💰 Para Yatır</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Tutar (TL)</label>
+                    <input type="number" id="brAmount" value="" min="1" max="10000" step="0.01" class="input-field" placeholder="100.00">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Not</label>
+                    <input type="text" id="brNote" placeholder="Opsiyonel not" class="input-field">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button id="brCancel" class="flex-1 btn btn-ghost">İptal</button>
+                    <button id="brConfirm" class="flex-1 btn btn-primary">Onayla</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
     // ============================================
     // ANDROID BRIDGE & STATE MANAGEMENT
@@ -222,297 +283,466 @@
     const Bridge = {
         ready: false,
         callbacks: new Map(),
+        callId: 0,
+        
         call(method, args = []) {
             return new Promise((resolve, reject) => {
                 if (!window.AndroidBridge) {
                     reject(new Error('AndroidBridge not available'));
                     return;
                 }
-                const id = Date.now() + Math.random();
+                const id = ++this.callId;
                 this.callbacks.set(id, { resolve, reject });
                 try {
-                    const result = window.AndroidBridge[method](...args);
-                    if (result && typeof result === 'string') {
-                        resolve(JSON.parse(result));
-                    } else {
-                        resolve(result);
+                    const result = AndroidBridge[method](...args);
+                    if (result !== undefined) {
+                        const parsed = JSON.parse(result);
+                        this.callbacks.delete(id);
+                        if (parsed.success === false) {
+                            reject(new Error(parsed.error || 'Unknown error'));
+                        } else {
+                            resolve(parsed);
+                        }
                     }
                 } catch (e) {
+                    this.callbacks.delete(id);
                     reject(e);
                 }
             });
-        },
-        async init() {
-            this.ready = true;
-            // Load initial data from native
-            try {
-                const data = await this.call('getAllData');
-                if (data) App.state = { ...App.state, ...data };
-            } catch (e) {
-                console.log('Using default state');
-            }
-            App.render();
         }
     };
 
     // ============================================
-    // APP STATE
+    // UTILITY FUNCTIONS
     // ============================================
-    const App = {
-        state: {
-            bankroll: { current_balance: 1000, available_balance: 1000, reserved_balance: 0, total_profit: 0, roi: 0, max_drawdown: 0 },
-            matches: [],
-            predictions: [],
-            coupons: [],
-            transactions: [],
-            lastSync: null
-        },
-        async syncData() {
-            UI.showLoading('Veriler senkronize ediliyor...');
-            try {
-                const result = await Bridge.call('syncLiveData');
-                if (result && result.success) {
-                    App.state.matches = result.matches || [];
-                    App.state.predictions = result.predictions || [];
-                    UI.showToast('Veriler güncellendi! ' + (result.count || 0) + ' maç', 'success');
-                } else {
-                    throw new Error(result?.error || 'Sync failed');
-                }
-            } catch (e) {
-                console.error('Sync error:', e);
-                UI.showToast('Senklonizasyon hatası: ' + e.message, 'error');
-            } finally {
-                UI.hideLoading();
-                App.render();
-            }
-        },
-        async generateCoupons() {
-            UI.showLoading('Kuponlar üretiliyor...');
-            try {
-                const result = await Bridge.call('generateCoupons');
-                if (result && result.success) {
-                    App.state.coupons = result.coupons || [];
-                    App.state.bankroll = result.bankroll || App.state.bankroll;
-                    UI.showToast(result.count + ' kupon üretildi!', 'success');
-                } else {
-                    throw new Error(result?.error || 'Generation failed');
-                }
-            } catch (e) {
-                console.error('Coupon error:', e);
-                UI.showToast('Kupon üretim hatası: ' + e.message, 'error');
-            } finally {
-                UI.hideLoading();
-                App.render();
-            }
-        },
-        render() {
-            UI.renderStats(App.state.bankroll);
-            UI.renderPredictions(App.state.predictions);
-            UI.renderCoupons(App.state.coupons);
-            UI.renderBankroll(App.state.bankroll);
-            UI.renderTransactions(App.state.transactions);
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => document.querySelectorAll(sel);
+    
+    function formatNumber(num, decimals = 2) {
+        if (num === null || num === undefined) return '0.00';
+        return Number(num).toLocaleString('tr-TR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    }
+    
+    function formatTL(num) {
+        return formatNumber(num) + ' TL';
+    }
+    
+    function formatPct(num) {
+        return '%' + formatNumber(num);
+    }
+    
+    function showToast(message, type = 'success') {
+        const toast = $('#toast');
+        const icon = $('#toastIcon');
+        const msg = $('#toastMessage');
+        
+        toast.className = 'toast show ' + type;
+        msg.textContent = message;
+        
+        if (type === 'success') {
+            icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>';
+        } else if (type === 'error') {
+            icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>';
+        } else {
+            icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>';
         }
-    };
-
-    // ============================================
-    // UI RENDERING
-    // ============================================
-    const UI = {
-        showLoading(msg) {
-            document.getElementById('loadingOverlay').style.display = 'flex';
-            document.getElementById('loadingOverlay').querySelector('p').textContent = msg;
-        },
-        hideLoading() {
-            document.getElementById('loadingOverlay').style.display = 'none';
-        },
-        showToast(msg, type = 'info') {
-            const toast = document.getElementById('toast');
-            const icon = document.getElementById('toastIcon');
-            const message = document.getElementById('toastMessage');
-            message.textContent = msg;
-            toast.className = 'toast show ' + (type === 'error' ? 'error' : type === 'success' ? 'success' : '');
-            icon.innerHTML = type === 'error' 
-                ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>'
-                : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>';
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        },
-        formatNumber(n, decimals = 2) {
-            return Number(n).toLocaleString('tr-TR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-        },
-        renderStats(b) {
-            document.getElementById('balance').textContent = this.formatNumber(b.current_balance) + ' TL';
-            document.getElementById('balance').dataset.value = b.current_balance;
-            document.getElementById('totalPnl').textContent = this.formatNumber(b.total_profit) + ' TL';
-            document.getElementById('totalPnl').className = 'stat-value ' + (b.total_profit >= 0 ? 'text-emerald-400' : 'text-rose-400');
-            document.getElementById('roi').textContent = '%' + this.formatNumber(b.roi);
-            document.getElementById('couponCount').textContent = App.state.coupons?.length || 0;
-            // Enable buttons if we have predictions
-            const hasPredictions = App.state.predictions?.length > 0;
-            document.getElementById('generateBtn').disabled = !hasPredictions;
-            document.getElementById('syncBtn').disabled = false;
-        },
-        renderPredictions(preds) {
-            const body = document.getElementById('predictionsBody');
-            const empty = document.getElementById('predictionsEmpty');
-            const table = document.getElementById('predictionsTable');
-            const countEl = document.getElementById('predCount');
-            if (!preds || preds.length === 0) {
-                body.innerHTML = '';
-                empty.classList.remove('hidden');
-                table.classList.add('hidden');
-                countEl.textContent = '0 maç';
-                return;
-            }
-            empty.classList.add('hidden');
-            table.classList.remove('hidden');
-            countEl.textContent = preds.length + ' maç';
-            countEl.className = 'badge bg-emerald-500/20 text-emerald-400';
-            body.innerHTML = preds.map(p => {
-                const match = App.state.matches.find(m => m.id === p.match_id) || {};
-                const home = match.home_team || 'Ev Sahibi';
-                const away = match.away_team || 'Deplasman';
-                const league = match.league || '';
-                const date = match.match_date ? new Date(match.match_date).toLocaleDateString('tr-TR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : '';
-                const outcomeLabels = { HOME_WIN: '1 (Ev)', DRAW: 'X (Beraberlik)', AWAY_WIN: '2 (Deplasman)', OVER_25: 'Üst 2.5', UNDER_25: 'Alt 2.5', BTTS_YES: 'KG Var', BTTS_NO: 'KG Yok' };
-                return `<tr>
-                    <td><strong>${home}</strong> vs ${away}</td>
-                    <td class="hidden sm:table-cell text-slate-400 text-xs">${league}</td>
-                    <td class="hidden md:table-cell text-slate-400 text-xs">${date}</td>
-                    <td><span class="badge bg-emerald-500/20 text-emerald-400">${outcomeLabels[p.predicted_outcome] || p.predicted_outcome}</span></td>
-                    <td class="text-indigo-400 font-bold">${p.final_score?.toFixed(1) || '0'}</td>
-                </tr>`;
-            }).join('');
-        },
-        renderCoupons(coupons) {
-            const body = document.getElementById('couponsBody');
-            const empty = document.getElementById('couponsEmpty');
-            const table = document.getElementById('couponsTable');
-            const badge = document.getElementById('couponCountBadge');
-            if (!coupons || coupons.length === 0) {
-                body.innerHTML = '';
-                empty.classList.remove('hidden');
-                table.classList.add('hidden');
-                badge.textContent = '0 kupon';
-                badge.className = 'badge badge-pending';
-                return;
-            }
-            empty.classList.add('hidden');
-            table.classList.remove('hidden');
-            badge.textContent = coupons.length + ' kupon';
-            badge.className = 'badge bg-indigo-500/20 text-indigo-400';
-            const typeLabels = {
-                SINGLE: 'Tekli', ACCUMULATOR_2: 'İkili', ACCUMULATOR_3: 'Üçlü', ACCUMULATOR_4: '4lü',
-                ACCUMULATOR_5: '5li', ACCUMULATOR_6: '6lı', SYSTEM_2_3: 'Sistem 2/3', SYSTEM_3_4: 'Sistem 3/4',
-                LUCKY15: 'Lucky 15', LUCKY31: 'Lucky 31', YANKEE: 'Yankee', CANADIAN: 'Canadian'
-            };
-            const statusLabels = { PENDING: 'Bekliyor', WON: 'Kazandı', LOST: 'Kaybedildi', CANCELLED: 'İptal', VOIDED: 'Geçersiz' };
-            const statusClasses = { PENDING: 'badge-pending', WON: 'badge-won', LOST: 'badge-lost', CANCELLED: 'badge-lost', VOIDED: 'badge-lost' };
-            body.innerHTML = coupons.map(c => {
-                const status = c.status || 'PENDING';
-                return `<tr>
-                    <td class="font-mono text-slate-400 text-xs">${c.id}</td>
-                    <td class="font-semibold">${typeLabels[c.coupon_type] || c.coupon_type}</td>
-                    <td class="text-indigo-400 font-bold">${c.total_odds?.toFixed(2) || '0'}</td>
-                    <td class="text-slate-300">${c.stake?.toFixed(2) || '0'} TL</td>
-                    <td><span class="badge ${statusClasses[status] || 'badge-pending'}">${statusLabels[status] || status}</span></td>
-                </tr>`;
-            }).join('');
-        },
-        renderBankroll(b) {
-            document.getElementById('bankrollCurrent').textContent = this.formatNumber(b.current_balance) + ' TL';
-            document.getElementById('bankrollAvailable').textContent = this.formatNumber(b.available_balance) + ' TL';
-            document.getElementById('bankrollReserved').textContent = this.formatNumber(b.reserved_balance) + ' TL';
-            document.getElementById('bankrollDrawdown').textContent = this.formatNumber(b.max_drawdown) + ' TL';
-        },
-        renderTransactions(txns) {
-            const body = document.getElementById('transactionsBody');
-            const empty = document.getElementById('transactionsEmpty');
-            if (!txns || txns.length === 0) {
-                body.innerHTML = '';
-                empty.classList.remove('hidden');
-                return;
-            }
-            empty.classList.add('hidden');
-            const typeLabels = { STAKE: 'Bahis', WINNING: 'Kazanç', DEPOSIT: 'Yatırım', WITHDRAWAL: 'Çekim', REFUND: 'İade', FEE: 'Komisyon' };
-            const typeColors = { STAKE: 'text-amber-400', WINNING: 'text-emerald-400', DEPOSIT: 'text-indigo-400', WITHDRAWAL: 'text-rose-400', REFUND: 'text-emerald-400', FEE: 'text-slate-400' };
-            body.innerHTML = txns.slice(0, 20).map(t => `
-                <tr>
-                    <td class="text-xs text-slate-400">${t.timestamp ? new Date(t.timestamp).toLocaleDateString('tr-TR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : ''}</td>
-                    <td><span class="badge" style="background: ${typeColors[t.txn_type] || '#334155'}20; color: ${typeColors[t.txn_type] || '#94a3b8'}">${typeLabels[t.txn_type] || t.txn_type}</span></td>
-                    <td class="${t.amount >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-semibold">${t.amount >= 0 ? '+' : ''}${this.formatNumber(t.amount)} TL</td>
-                    <td class="text-slate-400 text-xs">${t.note || ''}</td>
-                </tr>`).join('');
+        
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+    
+    function setLoading(loading) {
+        $('#loadingOverlay').classList.toggle('hidden', !loading);
+        $('#syncBtn').disabled = loading;
+        $('#generateBtn').disabled = loading;
+        $('#syncSpinner').classList.toggle('hidden', !loading);
+        $('#syncText').textContent = loading ? 'Yükleniyor...' : '🔄 Veri Çek';
+    }
+    
+    function animateValue(el, start, end, duration = 500) {
+        const startTime = performance.now();
+        function update(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const current = start + (end - start) * eased;
+            el.textContent = formatTL(current);
+            el.dataset.value = current;
+            if (progress < 1) requestAnimationFrame(update);
         }
-    };
-
-    // ============================================
-    // TABS
-    // ============================================
-    const Tabs = {
-        init() {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.addEventListener('click', () => this.switch(btn.id.replace('tab', '').toLowerCase()));
-            });
-        },
-        switch(name) {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                const active = btn.id.toLowerCase().includes(name);
-                btn.className = 'tab-btn flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ' +
-                    (active ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200');
-                btn.setAttribute('aria-selected', active);
-            });
-            document.querySelectorAll('.tab-panel').forEach(panel => {
-                panel.classList.toggle('hidden', !panel.id.includes(name));
-            });
-        }
-    };
-
-    // ============================================
-    // EVENT LISTENERS
-    // ============================================
-    function initEvents() {
-        document.getElementById('syncBtn').addEventListener('click', () => App.syncData());
-        document.getElementById('generateBtn').addEventListener('click', () => App.generateCoupons());
-        document.getElementById('refreshBtn').addEventListener('click', () => App.syncData());
-        document.getElementById('debugBtn').addEventListener('click', () => {
-            console.log('App State:', App.state);
-            UI.showToast('State logged to console', 'info');
-        });
-        Tabs.init();
+        requestAnimationFrame(update);
+    }
+    
+    function getStatusBadge(status) {
+        const badges = {
+            'PENDING': '<span class="badge badge-pending">Bekliyor</span>',
+            'WON': '<span class="badge badge-won">Kazandı</span>',
+            'LOST': '<span class="badge badge-lost">Kaybetti</span>',
+            'PARTIAL_WON': '<span class="badge badge-partial">Kısmi</span>',
+            'CANCELLED': '<span class="badge badge-pending">İptal</span>',
+            'VOIDED': '<span class="badge badge-pending">Geçersiz</span>'
+        };
+        return badges[status] || `<span class="badge badge-pending">${status}</span>`;
+    }
+    
+    function getOutcomeLabel(outcome) {
+        const labels = {
+            'HOME_WIN': '🏠 Ev Sahibi',
+            'AWAY_WIN': '✈️ Deplasman',
+            'DRAW': '🤝 Beraberlik',
+            'OVER_25': '⬆️ 2.5 Üstü',
+            'UNDER_25': '⬇️ 2.5 Altı',
+            'BTTS_YES': '⚽ KG Var',
+            'BTTS_NO': '🚫 KG Yok'
+        };
+        return labels[outcome] || outcome;
     }
 
     // ============================================
-    // INIT
+    // DATA LOADING
     // ============================================
-    document.addEventListener('DOMContentLoaded', async () => {
-        initEvents();
-        await Bridge.init();
-        // Initial sync if no data
-        if (App.state.predictions.length === 0) {
-            setTimeout(() => App.syncData(), 500);
+    async function loadAllData() {
+        setLoading(true);
+        try {
+            const data = JSON.parse(await Bridge.call('getAllData'));
+            
+            if (data.bankroll) updateBankrollUI(data.bankroll);
+            if (data.matches) updateMatchesUI(data.matches);
+            if (data.predictions) updatePredictionsUI(data.predictions);
+            if (data.coupons) updateCouponsUI(data.coupons);
+            if (data.transactions) updateTransactionsUI(data.transactions);
+            
+            showToast('Veriler güncellendi', 'success');
+        } catch (e) {
+            console.error('Load error:', e);
+            showToast('Yükleme hatası: ' + e.message, 'error');
+        } finally {
+            setLoading(false);
         }
-    });
-
-    // Pull to refresh (simple touch handling)
-    let touchStartY = 0;
-    document.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, { passive: true });
-    document.addEventListener('touchmove', e => {
-        const y = e.touches[0].clientY;
-        const diff = y - touchStartY;
-        const indicator = document.getElementById('pullIndicator');
-        if (diff > 60 && window.scrollY === 0) {
-            indicator.classList.remove('hidden');
-        } else {
-            indicator.classList.add('hidden');
+    }
+    
+    async function syncData(forceRefresh = false) {
+        setLoading(true);
+        try {
+            const result = JSON.parse(await Bridge.call('syncLiveData', [forceRefresh]));
+            if (result.success) {
+                showToast(`Senkronizasyon tamam: ${result.count} maç, ${result.predictions?.length || 0} tahmin, ${result.coupons?.length || 0} kupon`, 'success');
+                loadAllData();
+            } else {
+                throw new Error(result.error || 'Sync failed');
+            }
+        } catch (e) {
+            console.error('Sync error:', e);
+            showToast('Senkronizasyon hatası: ' + e.message, 'error');
+        } finally {
+            setLoading(false);
         }
-    }, { passive: true });
-    document.addEventListener('touchend', e => {
-        const indicator = document.getElementById('pullIndicator');
-        if (!indicator.classList.contains('hidden') && window.scrollY === 0) {
-            App.syncData();
+    }
+    
+    async function generateCoupons() {
+        const stake = parseFloat($('#genStake').value) || 10;
+        const strategy = $('#genStrategy').value;
+        const maxCoupons = parseInt($('#genMaxCoupons').value) || 20;
+        
+        $('#generateModal').classList.add('hidden');
+        setLoading(true);
+        
+        try {
+            const result = JSON.parse(await Bridge.call('generateCoupons', [stake, strategy, maxCoupons]));
+            if (result.success) {
+                showToast(`${result.count} kupon üretildi`, 'success');
+                loadAllData();
+            } else {
+                throw new Error(result.error || 'Generation failed');
+            }
+        } catch (e) {
+            console.error('Generate error:', e);
+            showToast('Kupon üretim hatası: ' + e.message, 'error');
+        } finally {
+            setLoading(false);
         }
-        indicator.classList.add('hidden');
-    }, { passive: true });
+    }
+    
+    // ============================================
+    // UI UPDATES
+    // ============================================
+    function updateBankrollUI(b) {
+        const current = parseFloat($('#balance').dataset.value) || 0;
+        const newVal = b.current_balance || 0;
+        animateValue($('#balance'), current, newVal);
+        $('#balance').textContent = formatTL(newVal);
+        
+        animateValue($('#totalPnl'), parseFloat($('#totalPnl').dataset.value) || 0, b.total_profit || 0);
+        $('#totalPnl').textContent = formatTL(b.total_profit || 0);
+        $('#totalPnl').className = 'stat-value mt-1 ' + ((b.total_profit || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400');
+        
+        animateValue($('#roi'), parseFloat($('#roi').dataset.value) || 0, b.roi || 0);
+        $('#roi').textContent = formatPct(b.roi || 0);
+        $('#roi').className = 'stat-value mt-1 ' + ((b.roi || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400');
+        
+        $('#bankrollCurrent').textContent = formatTL(b.current_balance || 0);
+        $('#bankrollAvailable').textContent = formatTL(b.available_balance || 0);
+        $('#bankrollReserved').textContent = formatTL(b.reserved_balance || 0);
+        $('#bankrollDrawdown').textContent = formatTL(b.max_drawdown || 0);
+    }
+    
+    function updateMatchesUI(matches) {
+        // Matches are used for predictions context
+        console.log('Loaded', matches.length, 'matches');
+    }
+    
+    function updatePredictionsUI(predictions) {
+        const tbody = $('#predictionsBody');
+        const empty = $('#predictionsEmpty');
+        const count = $('#predCount');
+        
+        if (!predictions || predictions.length === 0) {
+            tbody.innerHTML = '';
+            empty.classList.remove('hidden');
+            count.textContent = '0 maç';
+            return;
+        }
+        
+        empty.classList.add('hidden');
+        count.textContent = `${predictions.length} maç`;
+        count.className = 'badge badge-won';
+        
+        tbody.innerHTML = predictions.map(p => {
+            const metrics = [
+                { label: 'Güven', key: 'confidence', color: 'emerald' },
+                { label: 'Değer', key: 'value_score', color: 'amber' },
+                { label: 'Risk', key: 'risk_score', color: 'rose', invert: true },
+                { label: 'Kalite', key: 'quality_score', color: 'indigo' }
+            ].map(m => {
+                const val = p[m.key] || 0;
+                const pct = m.invert ? (1 - val) * 100 : val * 100;
+                return `<div class="flex items-center gap-1"><span class="text-[10px] text-slate-500">${m.label}</span><div class="metric-bar-bg flex-1"><div class="metric-bar" style="width: ${pct}%; background: linear-gradient(90deg, #${m.color}-500, #${m.color}-400)"></div></div></div>`;
+            }).join('');
+            
+            return `
+            <tr>
+                <td class="font-semibold text-white">${p.home_team || p.match_id} vs ${p.away_team || ''}</td>
+                <td class="hidden sm:table-cell text-slate-400">${p.league || ''}</td>
+                <td class="hidden md:table-cell text-xs text-slate-400">${p.match_date ? p.match_date.split(' ')[0] : ''}</td>
+                <td class="text-emerald-400 font-bold">${getOutcomeLabel(p.predicted_outcome)}</td>
+                <td class="text-indigo-400 font-bold">${p.final_score?.toFixed(1) || '0'}</td>
+                <td class="hidden lg:table-cell">${metrics}</td>
+            </tr>`;
+        }).join('');
+    }
+    
+    function updateCouponsUI(coupons) {
+        const list = $('#couponsList');
+        const empty = $('#couponsEmpty');
+        const badge = $('#couponCountBadge');
+        const count = $('#couponCount');
+        
+        if (!coupons || coupons.length === 0) {
+            list.innerHTML = '';
+            empty.classList.remove('hidden');
+            badge.textContent = '0 kupon';
+            count.textContent = '0';
+            return;
+        }
+        
+        empty.classList.add('hidden');
+        badge.textContent = `${coupons.length} kupon`;
+        badge.className = 'badge badge-won';
+        count.textContent = coupons.length;
+        
+        list.innerHTML = coupons.map(c => `
+            <div class="coupon-card">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="font-mono text-sm text-slate-400">${c.id}</span>
+                    <span class="text-xs font-semibold px-2 py-1 rounded bg-slate-700">${c.coupon_type}</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-sm mb-2">
+                    <div><span class="text-slate-500">Toplam Oran:</span> <span class="font-bold text-indigo-400 ml-1">${c.total_odds?.toFixed(2) || '0'}</span></div>
+                    <div><span class="text-slate-500">Bahis:</span> <span class="font-bold text-emerald-400 ml-1">${formatTL(c.stake)}</span></div>
+                    <div><span class="text-slate-500">Potansiyel:</span> <span class="font-bold text-amber-400 ml-1">${formatTL(c.potential_return)}</span></div>
+                </div>
+                <div class="flex items-center gap-2 mb-2">
+                    ${getStatusBadge(c.status)}
+                    <span class="text-xs text-slate-500">${c.strategy_tag || ''}</span>
+                </div>
+                <div class="space-y-1">
+                    ${(c.legs || []).map(leg => `
+                        <div class="coupon-leg flex items-center justify-between">
+                            <span>${leg.selection || ''} @ ${leg.odds?.toFixed(2) || '0'}</span>
+                            <span class="${leg.status === 'WON' ? 'text-emerald-400' : leg.status === 'LOST' ? 'text-rose-400' : 'text-amber-400'}">${leg.status || 'PENDING'}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    function updateTransactionsUI(transactions) {
+        const tbody = $('#transactionsBody');
+        const empty = $('#transactionsEmpty');
+        
+        if (!transactions || transactions.length === 0) {
+            tbody.innerHTML = '';
+            empty.classList.remove('hidden');
+            return;
+        }
+        
+        empty.classList.add('hidden');
+        tbody.innerHTML = transactions.map(t => `
+            <tr>
+                <td class="text-xs">${t.timestamp ? t.timestamp.split(' ')[0] : ''}</td>
+                <td class="font-medium ${t.txn_type === 'WINNING' || t.txn_type === 'DEPOSIT' ? 'text-emerald-400' : t.txn_type === 'STAKE' || t.txn_type === 'WITHDRAWAL' ? 'text-rose-400' : 'text-amber-400'}">${t.txn_type}</td>
+                <td class="${t.amount >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${t.amount >= 0 ? '+' : ''}${formatTL(t.amount)}</td>
+                <td class="text-slate-400 text-sm">${t.note || ''}</td>
+            </tr>
+        `).join('');
+    }
+    
+    // ============================================
+    // BANKROLL ACTIONS
+    // ============================================
+    async function handleDeposit() {
+        const amount = parseFloat($('#brAmount').value);
+        const note = $('#brNote').value;
+        if (!amount || amount <= 0) { showToast('Geçerli bir tutar girin', 'error'); return; }
+        
+        $('#bankrollModal').classList.add('hidden');
+        setLoading(true);
+        
+        try {
+            const result = JSON.parse(await Bridge.call('deposit', [amount, note]));
+            if (result.success) {
+                showToast(`${formatTL(amount)} yatırıldı`, 'success');
+                updateBankrollUI(result.bankroll);
+            } else throw new Error(result.error);
+        } catch (e) {
+            showToast('Yatırma hatası: ' + e.message, 'error');
+        } finally {
+            setLoading(false);
+            $('#brAmount').value = '';
+            $('#brNote').value = '';
+        }
+    }
+    
+    async function handleWithdraw() {
+        const amount = parseFloat($('#brAmount').value);
+        const note = $('#brNote').value;
+        if (!amount || amount <= 0) { showToast('Geçerli bir tutar girin', 'error'); return; }
+        
+        $('#bankrollModal').classList.add('hidden');
+        setLoading(true);
+        
+        try {
+            const result = JSON.parse(await Bridge.call('withdraw', [amount, note]));
+            if (result.success) {
+                showToast(`${formatTL(amount)} çekildi`, 'success');
+                updateBankrollUI(result.bankroll);
+            } else throw new Error(result.error);
+        } catch (e) {
+            showToast('Çekme hatası: ' + e.message, 'error');
+        } finally {
+            setLoading(false);
+            $('#brAmount').value = '';
+            $('#brNote').value = '';
+        }
+    }
+    
+    // ============================================
+    // EVENT LISTENERS
+    // ============================================
+    function initEventListeners() {
+        // Tab switching
+        $$('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                $$('.tab-btn').forEach(b => b.classList.remove('active'));
+                $$('.tab-panel').forEach(p => p.classList.add('hidden'));
+                btn.classList.add('active');
+                $('#panel' + btn.id.replace('tab', '')).classList.remove('hidden');
+            });
+        });
+        
+        // Refresh button
+        $('#refreshBtn').addEventListener('click', loadAllData);
+        
+        // Sync button
+        $('#syncBtn').addEventListener('click', () => syncData(false));
+        
+        // Generate button
+        $('#generateBtn').addEventListener('click', () => $('#generateModal').classList.remove('hidden'));
+        
+        // Generate modal
+        $('#genCancel').addEventListener('click', () => $('#generateModal').classList.add('hidden'));
+        $('#genConfirm').addEventListener('click', generateCoupons);
+        
+        // Bankroll actions
+        $('#depositBtn').addEventListener('click', () => {
+            $('#brModalTitle').textContent = '💰 Para Yatır';
+            $('#brConfirm').textContent = 'Yatır';
+            $('#brConfirm').onclick = handleDeposit;
+            $('#bankrollModal').classList.remove('hidden');
+        });
+        
+        $('#withdrawBtn').addEventListener('click', () => {
+            $('#brModalTitle').textContent = '💸 Para Çek';
+            $('#brConfirm').textContent = 'Çek';
+            $('#brConfirm').onclick = handleWithdraw;
+            $('#bankrollModal').classList.remove('hidden');
+        });
+        
+        $('#brCancel').addEventListener('click', () => {
+            $('#bankrollModal').classList.add('hidden');
+            $('#brAmount').value = '';
+            $('#brNote').value = '';
+        });
+        
+        // Close modals on overlay click
+        $('#generateModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden'); });
+        $('#bankrollModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden'); });
+        
+        // Pull to refresh
+        let pullStart = 0;
+        document.addEventListener('touchstart', (e) => { if (window.scrollY === 0) pullStart = e.touches[0].clientY; });
+        document.addEventListener('touchmove', (e) => {
+            if (window.scrollY === 0 && e.touches[0].clientY - pullStart > 100) {
+                $('#pullIndicator').classList.remove('hidden');
+            }
+        });
+        document.addEventListener('touchend', (e) => {
+            if (window.scrollY === 0 && e.changedTouches[0].clientY - pullStart > 100) {
+                syncData(true);
+            }
+            $('#pullIndicator').classList.add('hidden');
+        });
+        
+        // Debug button
+        $('#debugBtn').addEventListener('click', () => {
+            Bridge.call('openLogViewer');
+        });
+    }
+    
+    // ============================================
+    // INITIALIZATION
+    // ============================================
+    async function init() {
+        // Wait for Bridge to be ready
+        while (!window.AndroidBridge) {
+            await new Promise(r => setTimeout(r, 100));
+        }
+        Bridge.ready = true;
+        console.log('Bridge ready');
+        
+        initEventListeners();
+        await loadAllData();
+        
+        // Auto-refresh every 5 minutes
+        setInterval(loadAllData, 5 * 60 * 1000);
+    }
+    
+    // Start when DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
     </script>
 </body>
 </html>

@@ -114,6 +114,7 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         job.cancel()
+        repository.shutdown()
         CrashReporter.getInstance().logInfo("MainActivity", "Application destroyed")
     }
 
@@ -152,12 +153,18 @@ class MainActivity : AppCompatActivity() {
         fun getAllData(): String {
             return try {
                 runBlocking { 
+                    val bankroll = repository.getBankroll()
+                    val matches = repository.getUpcomingMatches(7)
+                    val predictions = repository.getPredictions(50.0, 50)
+                    val coupons = repository.getCoupons(null, 20)
+                    val transactions = repository.getTransactions(20)
+                    
                     gson.toJson(DataBundle(
-                        bankroll = repository.getBankroll(),
-                        matches = repository.getUpcomingMatches(),
-                        predictions = repository.getAllPredictions(),
-                        coupons = repository.getAllCoupons(),
-                        transactions = repository.getRecentTransactions(20)
+                        bankroll = bankroll,
+                        matches = matches,
+                        predictions = predictions,
+                        coupons = coupons,
+                        transactions = transactions
                     ))
                 }
             } catch (e: Exception) {
@@ -167,11 +174,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
-        fun syncLiveData(): String {
+        fun syncLiveData(forceRefresh: Boolean): String {
             return try {
                 runBlocking { 
-                    val result = repository.syncLiveData()
-                    CrashReporter.getInstance().logInfo("WebAppInterface", "Sync completed: ${result.count} matches")
+                    val result = repository.syncAll(forceRefresh)
+                    CrashReporter.getInstance().logInfo("WebAppInterface", "Sync completed: ${result.count} matches, ${result.predictions.size} predictions, ${result.coupons.size} coupons")
                     gson.toJson(result)
                 }
             } catch (e: Exception) {
@@ -181,12 +188,17 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
-        fun generateCoupons(): String {
+        fun generateCoupons(stakePerCoupon: Double, strategy: String, maxCoupons: Int): String {
             return try {
                 runBlocking { 
-                    val result = repository.generateDailyCoupons()
-                    CrashReporter.getInstance().logInfo("WebAppInterface", "Coupons generated: ${result.count}")
-                    gson.toJson(result)
+                    val request = com.openminis.betting.app.network.ApiClient.GenerateCouponsRequest(
+                        stake_per_coupon = stakePerCoupon,
+                        strategy = strategy,
+                        max_coupons = maxCoupons
+                    )
+                    val coupons = repository.generateCoupons(request)
+                    CrashReporter.getInstance().logInfo("WebAppInterface", "Coupons generated: ${coupons.size}")
+                    gson.toJson(Result(success = true, count = coupons.size, coupons = coupons))
                 }
             } catch (e: Exception) {
                 CrashReporter.getInstance().logError("WebAppInterface", "generateCoupons failed", e)
@@ -231,6 +243,123 @@ class MainActivity : AppCompatActivity() {
                 return gson.toJson(mapOf("success" to false, "error" to e.message))
             }
         }
+
+        @JavascriptInterface
+        fun getBankroll(): String {
+            return try {
+                runBlocking {
+                    val bankroll = repository.getBankroll()
+                    gson.toJson(Result(success = true, bankroll = bankroll))
+                }
+            } catch (e: Exception) {
+                CrashReporter.getInstance().logError("WebAppInterface", "getBankroll failed", e)
+                gson.toJson(Result(success = false, error = e.message))
+            }
+        }
+
+        @JavascriptInterface
+        fun deposit(amount: Double, note: String): String {
+            return try {
+                runBlocking {
+                    val bankroll = repository.deposit(amount, note)
+                    gson.toJson(Result(success = true, bankroll = bankroll))
+                }
+            } catch (e: Exception) {
+                CrashReporter.getInstance().logError("WebAppInterface", "deposit failed", e)
+                gson.toJson(Result(success = false, error = e.message))
+            }
+        }
+
+        @JavascriptInterface
+        fun withdraw(amount: Double, note: String): String {
+            return try {
+                runBlocking {
+                    val bankroll = repository.withdraw(amount, note)
+                    gson.toJson(Result(success = true, bankroll = bankroll))
+                }
+            } catch (e: Exception) {
+                CrashReporter.getInstance().logError("WebAppInterface", "withdraw failed", e)
+                gson.toJson(Result(success = false, error = e.message))
+            }
+        }
+
+        @JavascriptInterface
+        fun getMatches(): String {
+            return try {
+                runBlocking {
+                    val matches = repository.getUpcomingMatches(7)
+                    gson.toJson(Result(success = true, count = matches.size, matches = matches))
+                }
+            } catch (e: Exception) {
+                CrashReporter.getInstance().logError("WebAppInterface", "getMatches failed", e)
+                gson.toJson(Result(success = false, error = e.message))
+            }
+        }
+
+        @JavascriptInterface
+        fun getPredictions(minScore: Double): String {
+            return try {
+                runBlocking {
+                    val predictions = repository.getPredictions(minScore, 50)
+                    gson.toJson(Result(success = true, count = predictions.size, predictions = predictions))
+                }
+            } catch (e: Exception) {
+                CrashReporter.getInstance().logError("WebAppInterface", "getPredictions failed", e)
+                gson.toJson(Result(success = false, error = e.message))
+            }
+        }
+
+        @JavascriptInterface
+        fun getCoupons(): String {
+            return try {
+                runBlocking {
+                    val coupons = repository.getCoupons(null, 20)
+                    gson.toJson(Result(success = true, count = coupons.size, coupons = coupons))
+                }
+            } catch (e: Exception) {
+                CrashReporter.getInstance().logError("WebAppInterface", "getCoupons failed", e)
+                gson.toJson(Result(success = false, error = e.message))
+            }
+        }
+
+        @JavascriptInterface
+        fun getTransactions(): String {
+            return try {
+                runBlocking {
+                    val transactions = repository.getTransactions(20)
+                    gson.toJson(Result(success = true, count = transactions.size, transactions = transactions))
+                }
+            } catch (e: Exception) {
+                CrashReporter.getInstance().logError("WebAppInterface", "getTransactions failed", e)
+                gson.toJson(Result(success = false, error = e.message))
+            }
+        }
+
+        @JavascriptInterface
+        fun generatePrediction(matchId: String): String {
+            return try {
+                runBlocking {
+                    val prediction = repository.generatePrediction(matchId, false)
+                    gson.toJson(Result(success = true, predictions = listOf(prediction)))
+                }
+            } catch (e: Exception) {
+                CrashReporter.getInstance().logError("WebAppInterface", "generatePrediction failed", e)
+                gson.toJson(Result(success = false, error = e.message))
+            }
+        }
+
+        @JavascriptInterface
+        fun openSettings(): String {
+            try {
+                val intent = android.content.Intent(context, com.openminis.betting.app.settings.SettingsActivity::class.java)
+                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+                return gson.toJson(mapOf("success" to true))
+            } catch (e: Exception) {
+                CrashReporter.getInstance().logError("WebAppInterface", "openSettings failed", e)
+                return gson.toJson(mapOf("success" to false, "error" to e.message))
+            }
+        }
     }
 
     // ============================================
@@ -250,6 +379,7 @@ class MainActivity : AppCompatActivity() {
         val matches: List<Match> = emptyList(),
         val predictions: List<Prediction> = emptyList(),
         val coupons: List<Coupon> = emptyList(),
+        val transactions: List<BankrollTransaction> = emptyList(),
         val bankroll: Bankroll? = null,
         val error: String? = null
     )

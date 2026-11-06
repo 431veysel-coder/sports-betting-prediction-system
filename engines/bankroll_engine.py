@@ -12,7 +12,7 @@ def get_bankroll_status():
 
 def update_bankroll(amount, txn_type, reference_id=None, note=None):
     """
-    txn_type: STAKE, WINNING, DEPOSIT, WITHDRAWAL
+    txn_type: STAKE, WINNING, DEPOSIT, WITHDRAWAL, REFUND, FEE, ADJUSTMENT
     """
     conn = get_db()
     cursor = conn.cursor()
@@ -25,6 +25,8 @@ def update_bankroll(amount, txn_type, reference_id=None, note=None):
         
     current_balance = b['current_balance']
     total_staked = b['total_staked']
+    total_won = b['total_won']
+    total_lost = b['total_lost']
     total_profit = b['total_profit']
     
     if txn_type == 'STAKE':
@@ -34,26 +36,36 @@ def update_bankroll(amount, txn_type, reference_id=None, note=None):
         current_balance -= amount
         total_staked += amount
     elif txn_type == 'WINNING':
+        # amount is the total return (stake + profit)
+        # Profit = return - stake (but we don't know stake here, so track total_won)
         current_balance += amount
-        total_profit += (amount - (amount / 2.0)) # Simplified profit calc
+        total_won += amount
+        total_profit += amount  # Simplified: treat full return as profit for now
     elif txn_type == 'DEPOSIT':
         current_balance += amount
     elif txn_type == 'WITHDRAWAL':
         current_balance -= amount
+    elif txn_type == 'REFUND':
+        # Stake returned (void/cancelled)
+        current_balance += amount
+    elif txn_type == 'FEE':
+        current_balance -= amount
+    elif txn_type == 'ADJUSTMENT':
+        current_balance += amount  # Can be negative
         
     # Calculate ROI
     roi = round((total_profit / total_staked * 100.0) if total_staked > 0 else 0.0, 2)
     
     cursor.execute("""
         UPDATE bankroll 
-        SET current_balance = ?, total_staked = ?, total_profit = ?, roi = ?, updated_at = CURRENT_TIMESTAMP
+        SET current_balance = ?, total_staked = ?, total_won = ?, total_lost = ?, total_profit = ?, roi = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = 1
-    """, (current_balance, total_staked, total_profit, roi))
+    """, (current_balance, total_staked, total_won, total_lost, total_profit, roi))
     
     cursor.execute("""
-        INSERT INTO bankroll_txns (amount, txn_type, reference_id, note)
-        VALUES (?, ?, ?, ?)
-    """, (amount, txn_type, reference_id, note))
+        INSERT INTO bankroll_transactions (amount, txn_type, reference_id, note, balance_before, balance_after)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (amount, txn_type, reference_id, note, b['current_balance'], current_balance))
     
     conn.commit()
     conn.close()
