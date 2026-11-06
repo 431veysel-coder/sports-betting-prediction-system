@@ -7,6 +7,8 @@ import com.google.gson.reflect.TypeToken
 import com.openminis.betting.app.CrashReporter
 import com.openminis.betting.app.model.*
 import com.openminis.betting.app.settings.SettingsRepository
+import kotlinx.coroutines.await
+import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.*
 import java.io.IOException
 import java.lang.reflect.Type
@@ -370,7 +372,7 @@ class ApiClient(private val context: Context) {
 
     data class GenerateCouponsRequest(
         val stake_per_coupon: Double = 10.0,
-        val strategy: String = "BALANCED",
+        val strategy: String = "BALANCEDED",
         val max_coupons: Int = 20,
         val coupon_types: List<String>? = null
     )
@@ -499,9 +501,6 @@ class ApiClient(private val context: Context) {
 // ============================================
 // COROUTINES EXTENSION FOR OKHTTP
 // ============================================
-import kotlinx.coroutines.await
-import okhttp3.Call
-import okhttp3.Response
 
 private suspend fun Call.await(): Response = suspendCancellableCoroutine { cont ->
     enqueue(object : Callback {
